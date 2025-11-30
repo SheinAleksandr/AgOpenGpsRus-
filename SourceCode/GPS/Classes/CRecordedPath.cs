@@ -214,6 +214,7 @@ namespace AgOpenGPS
                 }
                 else
                 {
+                    mf.p_239.pgn[mf.p_239.geoStop] = 1; // Активируем геостоп когда путь закончился
                     StopDrivingRecordedPath();
                     return;
 
