@@ -214,7 +214,8 @@ namespace AgOpenGPS
                 }
                 else
                 {
-                    mf.p_239.pgn[mf.p_239.geoStop] = 1; // Активируем геостоп когда путь закончился
+                    mf.p_239.pgn[mf.p_239.geoStop] = 1;
+                    mf.SendPgnToLoop(mf.p_239.pgn);
                     StopDrivingRecordedPath();
                     return;
 
@@ -266,6 +267,7 @@ namespace AgOpenGPS
             mf.sim.stepDistance = 0;
             isDrivingRecordedPath = false;
             mf.p_239.pgn[mf.p_239.recordedSpeed] = 0; // ГАРАНТИРОВАННЫЙ СБРОС
+            mf.mc.isOutOfBounds = true; // или напрямую в PGN
             mf.btnPathGoStop.Image = Properties.Resources.boundaryPlay;
             mf.btnPathRecordStop.Enabled = true;
             mf.btnPickPath.Enabled = true;
