@@ -27,6 +27,9 @@ namespace AgOpenGPS
     //the main form object
     public partial class FormGPS : Form
     {
+        public UsbCanZlg usbCan;
+        RadarSr71 radar;
+
         public ApplicationCore AppCore { get; }
 
         public ApplicationModel AppModel => AppCore.AppModel;
@@ -533,6 +536,10 @@ namespace AgOpenGPS
             }
             //Init AgShareClient
             agShareClient = new AgShareClient(Settings.Default.AgShareServer, Settings.Default.AgShareApiKey);
+            //zlg
+            usbCan = new UsbCanZlg();
+            usbCan.Start();
+
         }
 
         #region Shutdown Handling

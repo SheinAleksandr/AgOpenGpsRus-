@@ -353,6 +353,12 @@ namespace AgOpenGPS
                 };
                 GLW.DrawLineStripPrimitive(vertices);
             }
+            // ===== Radar objects =====
+            if (mf.usbCan != null)
+            {
+                mf.usbCan.cradar.Draw();
+            }
+
             GL.LineWidth(1);
         }
 

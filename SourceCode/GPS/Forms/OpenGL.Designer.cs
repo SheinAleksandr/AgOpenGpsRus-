@@ -438,18 +438,6 @@ namespace AgOpenGPS
                     }
                     GL.PopMatrix();
 
-                    if (camera.camSetDistance > -250)
-                    {
-                        if (trk.idx > -1 && !isStanleyUsed)
-                        {
-                            PointStyle backgroundPointStyle = new PointStyle(12.0f, Colors.Black);
-                            PointStyle foregroundPointStyle = new PointStyle(6.0f, Colors.GoalPointColor);
-                            PointStyle[] pointStyles = { backgroundPointStyle, foregroundPointStyle };
-                            vec2 goalPoint = trk.gArr[trk.idx].mode == TrackMode.AB ? ABLine.goalPointAB : curve.goalPointCu;
-                            GLW.DrawPointLayered(pointStyles, goalPoint.easting, goalPoint.northing, 0.0);
-                        }
-                    }
-
                     // 2D Ortho ---------------------------------------////////-------------------------------------------------
                     GL.MatrixMode(MatrixMode.Projection);
                     GL.PushMatrix();

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	<RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <PublishDir>..\..\AgOpenGPS\</PublishDir>
     <ApplicationIcon>AOG.ico</ApplicationIcon>
     <UseWindowsForms>true</UseWindowsForms>
@@ -10,11 +10,20 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <EmbeddedResourceUseDependentUponConvention>true</EmbeddedResourceUseDependentUponConvention>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+    <Platforms>AnyCPU;x86</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="usbcan.dll" />
+  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="System.Configuration" />
@@ -25,6 +34,9 @@
 
   <ItemGroup>
     <Content Include="License.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="usbcan.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -42,7 +54,7 @@
     <PackageReference Include="GMap.NET.WinForms" Version="2.1.7" />
     <PackageReference Include="MechanikaDesign.WinForms.UI.ColorPicker" Version="2.0.0" />
     <PackageReference Include="OpenTK.GLControl" Version="3.3.3" />
-    <PackageReference Include="SourceGear.sqlite3" Version="3.50.3"/>
+    <PackageReference Include="SourceGear.sqlite3" Version="3.50.3" />
     <PackageReference Include="System.Data.SQLite" Version="2.0.1" />
     <PackageReference Include="System.Memory" Version="4.6.0" />
     <PackageReference Include="System.Resources.Extensions" Version="9.0.0" />
