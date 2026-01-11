@@ -66,7 +66,7 @@ namespace AgOpenGPS
 
         // ===== FIELDS =====
         Thread rxThread;
-        bool running = false;
+        volatile bool running;
 
         IntPtr rxBuffer;
         int objSize;
@@ -115,12 +115,23 @@ namespace AgOpenGPS
         public void Stop()
         {
             running = false;
-            Thread.Sleep(50);
+
+            try
+            {
+                if (rxThread != null && rxThread.IsAlive)
+                    rxThread.Join(300);
+            }
+            catch { }
 
             if (rxBuffer != IntPtr.Zero)
+            {
                 Marshal.FreeHGlobal(rxBuffer);
+                rxBuffer = IntPtr.Zero;
+            }
 
             VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
+
+            System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STOPPED");
         }
 
         // ===== RECEIVE LOOP =====

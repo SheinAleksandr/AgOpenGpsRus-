@@ -28,8 +28,6 @@ namespace AgOpenGPS
     public partial class FormGPS : Form
     {
         public UsbCanZlg usbCan;
-        RadarSr71 radar;
-
         public ApplicationCore AppCore { get; }
 
         public ApplicationModel AppModel => AppCore.AppModel;
