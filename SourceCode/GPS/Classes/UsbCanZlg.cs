@@ -78,6 +78,9 @@ namespace AgOpenGPS
         // ===== START =====
         public bool Start()
         {
+            radar.RadarOffsetY =
+                    Properties.Settings.Default.setVehicle_radarOffsetY;
+
             if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
                 return false;
 

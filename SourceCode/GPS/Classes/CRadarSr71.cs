@@ -29,6 +29,8 @@ namespace AgOpenGPS
         int receivedObjects = 0;
         ushort measurementCounter = 0;
 
+        public double RadarOffsetY = 0.0; // вперёд (+) / назад (−)
+
         public bool FrameComplete =>
                 expectedObjects > 0 && receivedObjects == expectedObjects;
 
@@ -111,8 +113,9 @@ namespace AgOpenGPS
             foreach (RadarObject o in Objects)
             {
                 CRadar.RadarObject ro = new CRadar.RadarObject();
-                ro.X = o.X;   // lateral → вправо
-                ro.Y = o.Y;   // longitudinal → вперёд
+
+                ro.X = o.X;
+                ro.Y = o.Y + RadarOffsetY;
 
                 list.Add(ro);
             }

@@ -177,13 +177,15 @@ namespace AgOpenGPS
         {
             if (((NudlessNumericUpDown)sender).ShowKeypad(this))
             {
-                double offsetMeters =
-                    (double)nudRadarOffset.Value * 0.01; // см → м
+                double offsetMeters = (double)nudRadarOffset.Value * 0.01; // см → м
 
                 Properties.Settings.Default.setVehicle_radarOffsetY = offsetMeters;
-                mf.vehicle.VehicleConfig.RadarOffsetY = offsetMeters;
-
                 Properties.Settings.Default.Save();
+
+                if (mf.usbCan != null)
+                {
+                    mf.usbCan.radar.RadarOffsetY = offsetMeters;
+                }
             }
         }
 
