@@ -29,6 +29,9 @@ namespace AgOpenGPS
         int receivedObjects = 0;
         ushort measurementCounter = 0;
 
+        public bool FrameComplete =>
+                expectedObjects > 0 && receivedObjects == expectedObjects;
+
         /// <summary>
         /// Вызывать для каждого CAN кадра радара
         /// </summary>

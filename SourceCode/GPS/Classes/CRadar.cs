@@ -26,16 +26,19 @@ namespace AgOpenGPS
         {
             lock (objects)
             {
+                GL.PushAttrib(AttribMask.PointBit | AttribMask.CurrentBit);
+
                 GL.PointSize(6);
                 GL.Begin(PrimitiveType.Points);
 
                 foreach (var o in objects)
                 {
-                    GL.Color3(1.0, 0.0, 0.0); // красные точки
-                    GL.Vertex3(o.X, o.Y, 0);
+                    GL.Color3(1.0, 0.0, 0.0);
+                    GL.Vertex3(o.X, o.Y, 0.05);
                 }
 
                 GL.End();
+                GL.PopAttrib();
             }
         }
     }

@@ -177,8 +177,11 @@ namespace AgOpenGPS
                                 radar.ProcessFrame(frame.ID, data);
                             }
                         }
-                        var objs = radar.GetCRadarObjects();
-                        cradar.Update(objs);
+                        if (radar.FrameComplete)
+                        {
+                            var objs = radar.GetCRadarObjects();
+                            cradar.Update(objs);
+                        }
                     }
 
                     Thread.Sleep(5);
