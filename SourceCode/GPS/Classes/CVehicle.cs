@@ -141,6 +141,16 @@ namespace AgOpenGPS
         public void DrawVehicle()
         {
             GL.Rotate(glm.toDegrees(-mf.fixHeading), 0.0, 0.0, 1.0);
+
+            // === update radar steer angle ===
+            if (mf.usbCan != null)
+            {
+                double steerDeg =
+                    mf.timerSim.Enabled ? mf.sim.steerAngle : mf.mc.actualSteerAngleDegrees;
+
+                mf.usbCan.radar.SteerAngleRad = steerDeg * Math.PI / 180.0;
+            }
+
             //mf.font.DrawText3D(0, 0, "&TGF");
             if (mf.isFirstHeadingSet && !mf.tool.isToolFrontFixed)
             {
@@ -354,24 +364,32 @@ namespace AgOpenGPS
                 GLW.DrawLineStripPrimitive(vertices);
             }
 
-            // ===== Radar zone (tool width) =====
+            // ===== Radar zone (steered) =====
             if (mf.usbCan != null)
             {
                 double half = mf.tool.width * 0.5;
+
+                GL.PushMatrix();
+
+                // поворот зоны по углу колёс
+                GL.Rotate(
+                    -mf.usbCan.radar.SteerAngleRad * 180.0 / Math.PI,
+                    0.0, 0.0, 1.0);
 
                 GL.LineWidth(2);
                 GL.Color3(0.0, 1.0, 0.0);
                 GL.Begin(PrimitiveType.Lines);
 
-                // левая граница
+                // левая граница зоны
                 GL.Vertex3(-half, 0, 0);
                 GL.Vertex3(-half, 10, 0);
 
-                // правая граница
+                // правая граница зоны
                 GL.Vertex3(half, 0, 0);
                 GL.Vertex3(half, 10, 0);
 
                 GL.End();
+                GL.PopMatrix();
             }
             // ===== Radar objects =====
             if (mf.usbCan != null)

@@ -33,12 +33,24 @@ namespace AgOpenGPS
         public double ToolHalfWidth = 0.0;
         public double MaxDistanceY = 30.0;  // дальность контроля
 
+        public double SteerAngleRad = 0.0;
+
         public bool FrameComplete =>
                 expectedObjects > 0 && receivedObjects == expectedObjects;
 
         /// <summary>
         /// Вызывать для каждого CAN кадра радара
         /// </summary>
+
+        static void Rotate(double x, double y, double angleRad, out double xr, out double yr)
+        {
+            double cos = Math.Cos(angleRad);
+            double sin = Math.Sin(angleRad);
+
+            xr = x * cos + y * sin;
+            yr = y * cos - x * sin;
+        }
+
         public void ProcessFrame(uint canId, byte[] data)
         {
             if (canId == ID_HEADER)
@@ -117,20 +129,21 @@ namespace AgOpenGPS
                 double x = o.X;
                 double y = o.Y + RadarOffsetY;
 
-                // ---- фильтр по зоне орудия ----
-                if (Math.Abs(x) > ToolHalfWidth)
+                // поворачиваем в систему руля
+                Rotate(x, y, -SteerAngleRad, out double xr, out double yr);
+
+                // фильтр по ширине орудия
+                if (Math.Abs(xr) > ToolHalfWidth)
                     continue;
 
-                if (y > MaxDistanceY)
-                    continue;
+                // возвращаем обратно
+                Rotate(xr, yr, SteerAngleRad, out double xf, out double yf);
 
-                CRadar.RadarObject ro = new CRadar.RadarObject
+                list.Add(new CRadar.RadarObject
                 {
-                    X = x,
-                    Y = y
-                };
-
-                list.Add(ro);
+                    X = xf,
+                    Y = yf
+                });
             }
 
             return list;
