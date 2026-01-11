@@ -353,6 +353,26 @@ namespace AgOpenGPS
                 };
                 GLW.DrawLineStripPrimitive(vertices);
             }
+
+            // ===== Radar zone (tool width) =====
+            if (mf.usbCan != null)
+            {
+                double half = mf.tool.width * 0.5;
+
+                GL.LineWidth(2);
+                GL.Color3(0.0, 1.0, 0.0);
+                GL.Begin(PrimitiveType.Lines);
+
+                // левая граница
+                GL.Vertex3(-half, 0, 0);
+                GL.Vertex3(-half, 10, 0);
+
+                // правая граница
+                GL.Vertex3(half, 0, 0);
+                GL.Vertex3(half, 10, 0);
+
+                GL.End();
+            }
             // ===== Radar objects =====
             if (mf.usbCan != null)
             {

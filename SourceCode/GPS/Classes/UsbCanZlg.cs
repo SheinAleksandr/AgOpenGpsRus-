@@ -78,6 +78,7 @@ namespace AgOpenGPS
         // ===== START =====
         public bool Start()
         {
+            radar.ToolHalfWidth = Properties.Settings.Default.setVehicle_toolWidth * 0.5;
             radar.RadarOffsetY =
                     Properties.Settings.Default.setVehicle_radarOffsetY;
 

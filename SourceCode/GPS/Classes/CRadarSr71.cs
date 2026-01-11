@@ -30,6 +30,8 @@ namespace AgOpenGPS
         ushort measurementCounter = 0;
 
         public double RadarOffsetY = 0.0; // вперёд (+) / назад (−)
+        public double ToolHalfWidth = 0.0;
+        public double MaxDistanceY = 30.0;  // дальность контроля
 
         public bool FrameComplete =>
                 expectedObjects > 0 && receivedObjects == expectedObjects;
@@ -112,10 +114,21 @@ namespace AgOpenGPS
 
             foreach (RadarObject o in Objects)
             {
-                CRadar.RadarObject ro = new CRadar.RadarObject();
+                double x = o.X;
+                double y = o.Y + RadarOffsetY;
 
-                ro.X = o.X;
-                ro.Y = o.Y + RadarOffsetY;
+                // ---- фильтр по зоне орудия ----
+                if (Math.Abs(x) > ToolHalfWidth)
+                    continue;
+
+                if (y > MaxDistanceY)
+                    continue;
+
+                CRadar.RadarObject ro = new CRadar.RadarObject
+                {
+                    X = x,
+                    Y = y
+                };
 
                 list.Add(ro);
             }
