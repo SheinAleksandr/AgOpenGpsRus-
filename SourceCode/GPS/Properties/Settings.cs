@@ -153,6 +153,7 @@ namespace AgOpenGPS.Properties
         public double setVehicle_maxSteerAngle = 30;
         public int set_youTurnExtensionLength = 20;
         public double setVehicle_antennaOffset = 0;
+        public double setVehicle_radarOffsetY = 0;
         public double set_youTurnDistanceFromBoundary = 2;
         public double setVehicle_goalPointLookAheadMult = 1.5;
         public double stanleyDistanceErrorGain = 1;

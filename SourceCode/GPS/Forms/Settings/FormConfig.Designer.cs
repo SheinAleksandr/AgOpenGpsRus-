@@ -483,6 +483,8 @@ namespace AgOpenGPS
             this.lblFeetMeters = new System.Windows.Forms.Label();
             this.btnOK = new System.Windows.Forms.Button();
             this.labelUnitsBottom = new System.Windows.Forms.Label();
+            this.radarOffset = new System.Windows.Forms.Label();
+            this.nudRadarOffset = new AgOpenGPS.NudlessNumericUpDown();
             this.panelLeftSideMenu.SuspendLayout();
             this.panelArduinoSubMenu.SuspendLayout();
             this.panelDataSourcesSubMenu.SuspendLayout();
@@ -595,6 +597,7 @@ namespace AgOpenGPS
             this.unitsGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudNumGuideLines)).BeginInit();
             this.panelBottom.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudRadarOffset)).BeginInit();
             this.SuspendLayout();
             // 
             // panelLeftSideMenu
@@ -1220,6 +1223,8 @@ namespace AgOpenGPS
             // tabVAntenna
             // 
             this.tabVAntenna.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.tabVAntenna.Controls.Add(this.nudRadarOffset);
+            this.tabVAntenna.Controls.Add(this.radarOffset);
             this.tabVAntenna.Controls.Add(this.labelPivotDistance);
             this.tabVAntenna.Controls.Add(this.labelAntHeight);
             this.tabVAntenna.Controls.Add(this.labelCenter);
@@ -8514,14 +8519,14 @@ namespace AgOpenGPS
             this.lblInchesCm.TabIndex = 303;
             this.lblInchesCm.Text = "Inches";
             // 
-            // lblSecTotalWidthMeters
+            // lblSecTotalWidth
             // 
             this.lblSecTotalWidth.AutoSize = true;
             this.lblSecTotalWidth.Font = new System.Drawing.Font("Tahoma", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSecTotalWidth.ForeColor = System.Drawing.Color.Black;
             this.lblSecTotalWidth.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.lblSecTotalWidth.Location = new System.Drawing.Point(632, 32);
-            this.lblSecTotalWidth.Name = "lblSecTotalWidthMeters";
+            this.lblSecTotalWidth.Name = "lblSecTotalWidth";
             this.lblSecTotalWidth.Size = new System.Drawing.Size(32, 25);
             this.lblSecTotalWidth.TabIndex = 302;
             this.lblSecTotalWidth.Text = "II";
@@ -8597,6 +8602,42 @@ namespace AgOpenGPS
             this.labelUnitsBottom.TabIndex = 454;
             this.labelUnitsBottom.Text = "Units:";
             this.labelUnitsBottom.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // radarOffset
+            // 
+            this.radarOffset.AutoSize = true;
+            this.radarOffset.Location = new System.Drawing.Point(339, 24);
+            this.radarOffset.Name = "radarOffset";
+            this.radarOffset.Size = new System.Drawing.Size(79, 16);
+            this.radarOffset.TabIndex = 504;
+            this.radarOffset.Text = "Radar Offset";
+            // 
+            // nudRadarOffset
+            // 
+            this.nudRadarOffset.BackColor = System.Drawing.Color.AliceBlue;
+            this.nudRadarOffset.Font = new System.Drawing.Font("Tahoma", 27.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.nudRadarOffset.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.nudRadarOffset.Location = new System.Drawing.Point(316, 43);
+            this.nudRadarOffset.Maximum = new decimal(new int[] {
+            999,
+            0,
+            0,
+            0});
+            this.nudRadarOffset.Minimum = new decimal(new int[] {
+            999,
+            0,
+            0,
+            -2147483648});
+            this.nudRadarOffset.Name = "nudRadarOffset";
+            this.nudRadarOffset.Size = new System.Drawing.Size(120, 52);
+            this.nudRadarOffset.TabIndex = 505;
+            this.nudRadarOffset.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.nudRadarOffset.Value = new decimal(new int[] {
+            111,
+            0,
+            0,
+            0});
+            this.nudRadarOffset.Click += new System.EventHandler(this.nudRadarOffset_Click);
             // 
             // FormConfig
             // 
@@ -8747,6 +8788,7 @@ namespace AgOpenGPS
             ((System.ComponentModel.ISupportInitialize)(this.nudNumGuideLines)).EndInit();
             this.panelBottom.ResumeLayout(false);
             this.panelBottom.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudRadarOffset)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -9201,5 +9243,7 @@ namespace AgOpenGPS
         private System.Windows.Forms.CheckBox chkboxHeadlandDist;
         private Forms.Config.ConfigSummaryControl configSummaryControl;
         private Forms.Config.ConfigVehicleControl configVehicleControl;
+        private System.Windows.Forms.Label radarOffset;
+        private NudlessNumericUpDown nudRadarOffset;
     }
 }

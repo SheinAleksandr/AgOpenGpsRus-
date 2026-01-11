@@ -17,6 +17,7 @@
 
         public double AntennaHeight { get; set; }
         public double AntennaPivot { get; set; }
+        public double RadarOffsetY { get; set; } = 0;
         public double AntennaOffset { get; set; }
 
         public double Wheelbase { get; set; }
