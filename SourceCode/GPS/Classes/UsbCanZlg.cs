@@ -181,6 +181,8 @@ namespace AgOpenGPS
                         {
                             var objs = radar.GetCRadarObjects();
                             cradar.Update(objs);
+
+                            radar.ResetFrame();
                         }
                     }
 

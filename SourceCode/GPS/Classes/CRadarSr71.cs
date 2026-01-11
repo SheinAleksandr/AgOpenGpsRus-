@@ -43,6 +43,12 @@ namespace AgOpenGPS
                 ParseObject(data);
         }
 
+        public void ResetFrame()
+        {
+            expectedObjects = 0;
+            receivedObjects = 0;
+        }
+
         // ===== 0x61A =====
         void ParseHeader(byte[] d)
         {
