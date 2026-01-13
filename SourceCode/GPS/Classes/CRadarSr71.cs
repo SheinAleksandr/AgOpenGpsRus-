@@ -94,8 +94,7 @@ out double xr, out double yr)
             get
             {
                 lock (locker)
-                    return expectedObjects > 0 &&
-                    receivedObjects == expectedObjects;
+                    return receivedObjects >= expectedObjects;
             }
         }
         // ===== COMMIT FRAME =====
@@ -132,9 +131,9 @@ out double xr, out double yr)
 
                 if (o.Rcs < -20)
                     cls = RadarClass.Unknown;
-                else if (o.Rcs < -8)
+                else if (o.Rcs < -5)
                     cls = RadarClass.HumanLike;
-                else if (o.Rcs < 8)
+                else if (o.Rcs < 15)
                     cls = RadarClass.VehicleLike;
                 else
                     cls = RadarClass.LargeStatic;
@@ -151,41 +150,64 @@ out double xr, out double yr)
         }
         // ===== YOUTURN MODE =====
         public List<CRadar.RadarObject> GetObjectsOnYouTurnPath(
-List<vec3> ytLocalPath,
-double halfWidth)
+    List<vec3> ytLocalPath,
+    double halfWidth)
         {
             List<RadarObject> snapshot;
             lock (locker)
                 snapshot = new List<RadarObject>(stableObjects);
+
             List<CRadar.RadarObject> dangerous = new List<CRadar.RadarObject>();
+
             if (ytLocalPath == null || ytLocalPath.Count < 2)
                 return dangerous;
+
             foreach (var obj in snapshot)
             {
-                double ox = obj.X;
-                double oy = obj.Y + RadarOffsetY;
+                // === ПРИВОДИМ ОБЪЕКТ В ЛОКАЛЬНУЮ СИСТЕМУ ТРАКТОРА ===
+                RadarToVehicleLocal(obj.X, obj.Y, out double ox, out double oy);
+
+                // отбрасываем всё, что позади
+                if (oy < 0 || oy > MaxDistanceY)
+                    continue;
+
+                // проверяем попадание в коридор YouTurn
                 for (int i = 0; i < Math.Min(ytLocalPath.Count - 1, 50); i++)
                 {
                     double dist = DistToSegment(
-                    ox, oy,
-                    ytLocalPath[i].easting, ytLocalPath[i].northing,
-                    ytLocalPath[i + 1].easting, ytLocalPath[i + 1].northing);
+                        ox, oy,
+                        ytLocalPath[i].easting, ytLocalPath[i].northing,
+                        ytLocalPath[i + 1].easting, ytLocalPath[i + 1].northing);
+
                     if (dist < halfWidth)
                     {
-                        double speed = Math.Sqrt(obj.Vx * obj.Vx + obj.Vy * obj.Vy);
+                        double speed = Math.Abs(obj.Vy);
 
                         dangerous.Add(new CRadar.RadarObject
                         {
                             X = ox,
                             Y = oy,
                             Speed = speed,
-                            Class = RadarClass.VehicleLike // или вычислить по RCS
+                            Class = RadarClass.VehicleLike
                         });
                         break;
                     }
                 }
             }
+
             return dangerous;
+        }
+
+        private void RadarToVehicleLocal(
+    double rx, double ry,
+    out double lx, out double ly)
+        {
+            // смещение радара вперёд
+            double y = ry + RadarOffsetY;
+            double x = rx;
+
+            // поворот в систему машины
+            Rotate(x, y, -SteerAngleRad, out lx, out ly);
         }
         // ===== DISTANCE =====
         private static double DistToSegment(
