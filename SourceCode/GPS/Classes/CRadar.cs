@@ -9,6 +9,7 @@ namespace AgOpenGPS
         {
             public double X; // вправо от трактора (м)
             public double Y; // вперёд (м)
+            public double Speed;   // ← ДОБАВИТЬ (м/с)
         }
 
         private readonly List<RadarObject> objects = new List<RadarObject>();
@@ -33,7 +34,11 @@ namespace AgOpenGPS
 
                 foreach (var o in objects)
                 {
-                    GL.Color3(1.0, 0.0, 0.0);
+                    if (o.Speed > 0.3)
+                        GL.Color3(1.0, 0.0, 0.0);   // движущийся — красный
+                    else
+                        GL.Color3(0.5, 0.5, 0.5);   // статичный — серый
+
                     GL.Vertex3(o.X, o.Y, 0.05);
                 }
 

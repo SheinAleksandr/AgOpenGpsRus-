@@ -360,6 +360,16 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
 
                 // 1. Обычная зона — ВСЕГДА
                 var stdObjects = radar.GetCRadarObjects();
+
+                // ===== ГЛОБАЛЬНЫЙ КОНТРОЛЬ ДВИЖУЩИХСЯ ОБЪЕКТОВ =====
+                var movingObjects = new List<CRadar.RadarObject>();
+
+                foreach (var obj in stdObjects)
+                {
+                    if (obj.Speed > 0.3) // порог 0.3 м/с
+                        movingObjects.Add(obj);
+                }
+
                 // 2. YouTurn зона — ТОЛЬКО если есть
                 var ytObjects = new List<CRadar.RadarObject>();
                 bool hasYouTurnObjects = false;
@@ -395,9 +405,18 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                         localYtList,
                         mf.tool.width * 0.5);
                 }
-                // 3. ПРИОРИТЕТ
-                List<CRadar.RadarObject> processedObjects =
-hasYouTurnObjects ? ytObjects : stdObjects;
+                // 3. ПРИОРИТЕТ
+                List<CRadar.RadarObject> processedObjects;
+
+                if (hasYouTurnObjects)
+                {
+                    processedObjects = ytObjects;
+                }
+                else
+                {
+                    processedObjects = stdObjects;
+                }
+
                 // Отрисовка самих объектов (красных точек)
                 mf.usbCan.cradar.Update(processedObjects);
                 mf.usbCan.cradar.Draw();

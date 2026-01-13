@@ -126,10 +126,13 @@ out double xr, out double yr)
                 Rotate(xr, yr, SteerAngleRad, out double xf, out double yf);
                 if (yf < 0 || yf > MaxDistanceY)
                     continue;
+                double speed = Math.Sqrt(o.Vx * o.Vx + o.Vy * o.Vy);
+
                 list.Add(new CRadar.RadarObject
                 {
                     X = xf,
-                    Y = yf
+                    Y = yf,
+                    Speed = speed
                 });
             }
             return list;
