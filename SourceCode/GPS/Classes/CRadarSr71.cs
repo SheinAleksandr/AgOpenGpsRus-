@@ -128,11 +128,23 @@ out double xr, out double yr)
                     continue;
                 double speed = Math.Sqrt(o.Vx * o.Vx + o.Vy * o.Vy);
 
+                RadarClass cls;
+
+                if (o.Rcs < -20)
+                    cls = RadarClass.Unknown;
+                else if (o.Rcs < -8)
+                    cls = RadarClass.HumanLike;
+                else if (o.Rcs < 8)
+                    cls = RadarClass.VehicleLike;
+                else
+                    cls = RadarClass.LargeStatic;
+
                 list.Add(new CRadar.RadarObject
                 {
                     X = xf,
                     Y = yf,
-                    Speed = speed
+                    Speed = speed,
+                    Class = cls
                 });
             }
             return list;
@@ -160,10 +172,14 @@ double halfWidth)
                     ytLocalPath[i + 1].easting, ytLocalPath[i + 1].northing);
                     if (dist < halfWidth)
                     {
+                        double speed = Math.Sqrt(obj.Vx * obj.Vx + obj.Vy * obj.Vy);
+
                         dangerous.Add(new CRadar.RadarObject
                         {
                             X = ox,
-                            Y = oy
+                            Y = oy,
+                            Speed = speed,
+                            Class = RadarClass.VehicleLike // или вычислить по RCS
                         });
                         break;
                     }

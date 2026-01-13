@@ -308,6 +308,8 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 double steerDeg = mf.timerSim.Enabled ? mf.sim.steerAngle : mf.mc.actualSteerAngleDegrees;
                 radar.SteerAngleRad = steerDeg * Math.PI / 180.0;
 
+                radar.ToolHalfWidth = mf.tool.width * 0.5 + 0.5;
+
                 // ===== ЗОНА КОНТРОЛЯ РАДАРА =====
 
                 // ШИРИНА ИЗ НАСТРОЕК AOG
