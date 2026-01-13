@@ -308,6 +308,56 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 double steerDeg = mf.timerSim.Enabled ? mf.sim.steerAngle : mf.mc.actualSteerAngleDegrees;
                 radar.SteerAngleRad = steerDeg * Math.PI / 180.0;
 
+                // ===== ЗОНА КОНТРОЛЯ РАДАРА =====
+
+                // ШИРИНА ИЗ НАСТРОЕК AOG
+                double toolWidth = mf.tool.width;
+
+                // Актуальная ширина орудия
+                double halfWidth = toolWidth * 0.5;
+
+                // Запас безопасности ±0.5 м
+                halfWidth += 0.5;
+
+                // Дальность контроля радара
+                double maxDistance = radar.MaxDistanceY;
+
+                GL.PushMatrix();
+
+                // смещение от центра поворота (pivot axle) к радару
+                double radarY =
+                    Properties.Settings.Default.setVehicle_antennaOffset
+                  + Properties.Settings.Default.setVehicle_radarOffsetY;
+
+                GL.Translate(0, radarY, 0);
+
+                // поворот зоны по рулю
+                GL.Rotate(-steerDeg, 0, 0, 1);
+
+                // --- Полупрозрачная заливка ---
+                GL.Color4(0.0, 0.5, 1.0, 0.15);
+                GL.Begin(PrimitiveType.Quads);
+                {
+                    GL.Vertex3(-halfWidth, 0, 0.05);
+                    GL.Vertex3(-halfWidth, maxDistance, 0.05);
+                    GL.Vertex3(halfWidth, maxDistance, 0.05);
+                    GL.Vertex3(halfWidth, 0, 0.05);
+                }
+                GL.End();
+
+                // --- Контур зоны ---
+                GL.LineWidth(1);
+                GL.Color3(0.0, 0.3, 0.8);
+                GL.Begin(PrimitiveType.LineLoop);
+                {
+                    GL.Vertex3(-halfWidth, 0, 0.06);
+                    GL.Vertex3(-halfWidth, maxDistance, 0.06);
+                    GL.Vertex3(halfWidth, maxDistance, 0.06);
+                    GL.Vertex3(halfWidth, 0, 0.06);
+                }
+                GL.End();
+                GL.PopMatrix();
+
                 // 1. Обычная зона — ВСЕГДА
                 var stdObjects = radar.GetCRadarObjects();
                 // 2. YouTurn зона — ТОЛЬКО если есть
