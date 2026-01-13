@@ -101,15 +101,9 @@ namespace AgOpenGPS
         public void DrawVehicle()
         {
             GL.Rotate(glm.toDegrees(-mf.fixHeading), 0.0, 0.0, 1.0);
-            // === update radar steer angle ===
-            if (mf.usbCan != null)
-            {
-                double steerDeg =
-                mf.timerSim.Enabled ? mf.sim.steerAngle : mf.mc.actualSteerAngleDegrees;
-                mf.usbCan.radar.SteerAngleRad = steerDeg * Math.PI / 180.0;
-            }
-            //mf.font.DrawText3D(0, 0, "&TGF");
-            if (mf.isFirstHeadingSet && !mf.tool.isToolFrontFixed)
+
+            //mf.font.DrawText3D(0, 0, "&TGF");
+            if (mf.isFirstHeadingSet && !mf.tool.isToolFrontFixed)
             {
                 // Draw the rigid hitch
                 double hitchLengthFromPivot = mf.tool.GetHitchLengthFromVehiclePivot();
@@ -375,7 +369,7 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 // 2. YouTurn зона — ТОЛЬКО если есть
                 var ytObjects = new List<CRadar.RadarObject>();
                 bool hasYouTurnObjects = false;
-                if (mf.yt.isYouTurnTriggered && mf.yt.ytList.Count > 1)
+                if (mf.yt.isYouTurnTriggered && mf.yt.ytList != null && mf.yt.ytList.Count > 1)
                 {
                     // 1️⃣ найти где мы сейчас на траектории
                     int startIdx = FindClosestIndex(
@@ -426,10 +420,7 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
             GL.LineWidth(1);
         } // Конец метода DrawVehicle
 
-        private int FindClosestIndex(
-    List<vec3> path,
-    double x,
-    double y)
+        private int FindClosestIndex(List<vec3> path, double x, double y)
         {
             int best = 0;
             double bestDist = double.MaxValue;
@@ -444,6 +435,9 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 {
                     bestDist = d;
                     best = i;
+
+                    // Ранний выход если точка ближе 0.5м
+                    if (d < 0.25) break;
                 }
             }
             return best;

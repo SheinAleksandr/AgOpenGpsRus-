@@ -4,28 +4,36 @@ using System.Threading;
 
 namespace AgOpenGPS
 {
-    public unsafe class UsbCanZlg
+    public unsafe class UsbCanZlg : IDisposable
     {
         // ===== ZLG constants =====
-        const uint DEVICE_TYPE = 4;   // VCI_USBCAN1
-        const uint DEVICE_INDEX = 0;
-        const uint CAN_INDEX = 0;
+        private const uint DEVICE_TYPE = 4;   // VCI_USBCAN1
+        private const uint DEVICE_INDEX = 0;
+        private const uint CAN_INDEX = 0;
+
+        private const int RX_BUFFER_SIZE = 100;
+        private const int RX_WAIT_TIME_MS = 100;
+        private const int THREAD_SLEEP_MS = 5;
+        private const int THREAD_JOIN_TIMEOUT_MS = 500;
 
         // ===== DLL IMPORT =====
-        [DllImport("usbcan.dll")]
-        static extern uint VCI_OpenDevice(uint type, uint index, uint reserved);
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern uint VCI_OpenDevice(uint type, uint index, uint reserved);
 
-        [DllImport("usbcan.dll")]
-        static extern uint VCI_CloseDevice(uint type, uint index);
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern uint VCI_CloseDevice(uint type, uint index);
 
-        [DllImport("usbcan.dll")]
-        static extern uint VCI_InitCAN(uint type, uint index, uint canInd, ref VCI_INIT_CONFIG config);
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern uint VCI_InitCAN(uint type, uint index, uint canInd, ref VCI_INIT_CONFIG config);
 
-        [DllImport("usbcan.dll")]
-        static extern uint VCI_StartCAN(uint type, uint index, uint canInd);
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern uint VCI_StartCAN(uint type, uint index, uint canInd);
 
-        [DllImport("usbcan.dll")]
-        static extern int VCI_Receive(
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern uint VCI_ResetCAN(uint type, uint index, uint canInd);
+
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern int VCI_Receive(
             uint type,
             uint index,
             uint canInd,
@@ -33,9 +41,12 @@ namespace AgOpenGPS
             uint len,
             int waitTime);
 
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern uint VCI_ClearBuffer(uint type, uint index, uint canInd);
+
         // ===== STRUCTS =====
         [StructLayout(LayoutKind.Sequential)]
-        struct VCI_INIT_CONFIG
+        private struct VCI_INIT_CONFIG
         {
             public uint AccCode;
             public uint AccMask;
@@ -47,7 +58,7 @@ namespace AgOpenGPS
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct VCI_CAN_OBJ
+        private struct VCI_CAN_OBJ
         {
             public uint ID;
             public uint TimeStamp;
@@ -63,127 +74,367 @@ namespace AgOpenGPS
         // ===== FIELDS =====
         private Thread rxThread;
         private volatile bool running;
+        private volatile bool isDeviceOpen;
 
-        private IntPtr rxBuffer;
-        private int objSize;
+        private IntPtr rxBuffer = IntPtr.Zero;
+        private readonly int objSize;
+
+        private readonly object disposeLock = new object();
+        private bool disposed = false;
 
         // ===== RADAR =====
         public readonly RadarSr71 radar = new RadarSr71();
         public readonly CRadar cradar = new CRadar();
 
+        // ===== STATISTICS =====
+        private long totalFramesReceived = 0;
+        private long totalParseErrors = 0;
+        private long lastStatsLogTime = 0;
+        private const long STATS_LOG_INTERVAL_MS = 30000; // 30 секунд
+
+        // ===== CONSTRUCTOR =====
+        public UsbCanZlg()
+        {
+            objSize = sizeof(VCI_CAN_OBJ);
+        }
+
         // ===== START =====
         public bool Start()
         {
-            radar.RadarOffsetY =
-                Properties.Settings.Default.setVehicle_radarOffsetY;
-
-            if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
-                return false;
-
-            VCI_INIT_CONFIG cfg = new VCI_INIT_CONFIG
+            lock (disposeLock)
             {
-                AccCode = 0,
-                AccMask = 0xFFFFFFFF,
-                Filter = 1,
-                Mode = 0,
+                if (disposed)
+                {
+                    System.Diagnostics.Debug.WriteLine("ERROR: Cannot start disposed UsbCanZlg");
+                    return false;
+                }
 
-                // 500 kbit/s
-                Timing0 = 0x00,
-                Timing1 = 0x1C
-            };
+                if (running)
+                {
+                    System.Diagnostics.Debug.WriteLine("WARNING: UsbCanZlg already running");
+                    return true;
+                }
 
-            if (VCI_InitCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, ref cfg) == 0)
-                return false;
+                try
+                {
+                    // Load radar settings
+                    radar.RadarOffsetY = Properties.Settings.Default.setVehicle_radarOffsetY;
 
-            if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
-                return false;
+                    // Open device
+                    if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine("ERROR: Failed to open ZLG CAN device");
+                        return false;
+                    }
+                    isDeviceOpen = true;
 
-            objSize = sizeof(VCI_CAN_OBJ);
-            rxBuffer = Marshal.AllocHGlobal(objSize * 100);
+                    // Configure CAN: 500 kbit/s
+                    VCI_INIT_CONFIG cfg = new VCI_INIT_CONFIG
+                    {
+                        AccCode = 0,
+                        AccMask = 0xFFFFFFFF,
+                        Filter = 1,
+                        Mode = 0,
+                        Timing0 = 0x00,  // 500 kbit/s
+                        Timing1 = 0x1C
+                    };
 
-            running = true;
-            rxThread = new Thread(ReceiveLoop)
-            {
-                IsBackground = true
-            };
-            rxThread.Start();
+                    if (VCI_InitCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, ref cfg) == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine("ERROR: Failed to initialize CAN");
+                        CloseDevice();
+                        return false;
+                    }
 
-            System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STARTED");
-            return true;
+                    // Clear buffer
+                    VCI_ClearBuffer(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX);
+
+                    // Start CAN
+                    if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine("ERROR: Failed to start CAN");
+                        CloseDevice();
+                        return false;
+                    }
+
+                    // Allocate receive buffer
+                    rxBuffer = Marshal.AllocHGlobal(objSize * RX_BUFFER_SIZE);
+
+                    // Start receive thread
+                    running = true;
+                    rxThread = new Thread(ReceiveLoop)
+                    {
+                        IsBackground = true,
+                        Name = "ZLG_CAN_RX",
+                        Priority = ThreadPriority.AboveNormal
+                    };
+                    rxThread.Start();
+
+                    System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STARTED successfully");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ERROR: Exception during ZLG start: {ex.Message}");
+                    Cleanup();
+                    return false;
+                }
+            }
         }
 
         // ===== STOP =====
         public void Stop()
         {
-            running = false;
-
-            try
+            lock (disposeLock)
             {
-                rxThread?.Join(300);
-            }
-            catch { }
+                if (!running && !isDeviceOpen)
+                {
+                    return; // Already stopped
+                }
 
+                running = false;
+
+                // Wait for thread to finish
+                if (rxThread != null && rxThread.IsAlive)
+                {
+                    if (!rxThread.Join(THREAD_JOIN_TIMEOUT_MS))
+                    {
+                        System.Diagnostics.Debug.WriteLine("WARNING: CAN receive thread did not stop gracefully");
+                        try
+                        {
+                            rxThread.Abort();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"ERROR: Failed to abort thread: {ex.Message}");
+                        }
+                    }
+                    rxThread = null;
+                }
+
+                Cleanup();
+
+                System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STOPPED");
+                LogStatistics();
+            }
+        }
+
+        // ===== CLEANUP =====
+        private void Cleanup()
+        {
+            // Free buffer
             if (rxBuffer != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(rxBuffer);
+                try
+                {
+                    Marshal.FreeHGlobal(rxBuffer);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ERROR: Failed to free buffer: {ex.Message}");
+                }
                 rxBuffer = IntPtr.Zero;
             }
 
-            VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
-            System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STOPPED");
+            // Close device
+            CloseDevice();
+        }
+
+        // ===== CLOSE DEVICE =====
+        private void CloseDevice()
+        {
+            if (isDeviceOpen)
+            {
+                try
+                {
+                    VCI_ResetCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX);
+                    VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ERROR: Failed to close device: {ex.Message}");
+                }
+                isDeviceOpen = false;
+            }
         }
 
         // ===== RECEIVE LOOP =====
         private void ReceiveLoop()
         {
+            System.Diagnostics.Debug.WriteLine("CAN receive thread started");
+
             try
             {
                 while (running)
                 {
-                    int count = VCI_Receive(
-                        DEVICE_TYPE,
-                        DEVICE_INDEX,
-                        CAN_INDEX,
-                        rxBuffer,
-                        100,
-                        100);
+                    if (rxBuffer == IntPtr.Zero)
+                    {
+                        System.Diagnostics.Debug.WriteLine("ERROR: RX buffer is null");
+                        break;
+                    }
+
+                    int count = 0;
+
+                    try
+                    {
+                        count = VCI_Receive(
+                            DEVICE_TYPE,
+                            DEVICE_INDEX,
+                            CAN_INDEX,
+                            rxBuffer,
+                            RX_BUFFER_SIZE,
+                            RX_WAIT_TIME_MS);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"ERROR: VCI_Receive exception: {ex.Message}");
+                        Thread.Sleep(100); // Back off on error
+                        continue;
+                    }
 
                     if (count > 0)
                     {
-                        for (int i = 0; i < count; i++)
-                        {
-                            VCI_CAN_OBJ* frame =
-                                (VCI_CAN_OBJ*)((byte*)rxBuffer + i * objSize);
-
-                            if (frame->DataLen == 0 || frame->DataLen > 8)
-                                continue;
-
-                            // ===== FILTER RADAR =====
-                            if (frame->ID != RadarSr71.ID_HEADER &&
-                                frame->ID != RadarSr71.ID_OBJECT)
-                                continue;
-
-                            byte[] data = new byte[frame->DataLen];
-                            for (int j = 0; j < frame->DataLen; j++)
-                                data[j] = frame->Data[j];
-
-                            radar.ProcessFrame(frame->ID, data);
-                        }
-
-                        // Кадр завершён — просто сбрасываем флаг
-                        if (radar.FrameComplete)
-                        {
-                            radar.CommitFrame();
-                        }
+                        ProcessReceivedFrames(count);
                     }
 
-                    Thread.Sleep(5);
+                    Thread.Sleep(THREAD_SLEEP_MS);
                 }
+            }
+            catch (ThreadAbortException)
+            {
+                System.Diagnostics.Debug.WriteLine("CAN receive thread aborted");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("USB-CAN RX ERROR: " + ex);
+                System.Diagnostics.Debug.WriteLine($"FATAL: USB-CAN RX thread error: {ex.Message}\n{ex.StackTrace}");
             }
+            finally
+            {
+                System.Diagnostics.Debug.WriteLine("CAN receive thread exiting");
+            }
+        }
+
+        // ===== PROCESS RECEIVED FRAMES =====
+        private void ProcessReceivedFrames(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                try
+                {
+                    VCI_CAN_OBJ* frame = (VCI_CAN_OBJ*)((byte*)rxBuffer + i * objSize);
+
+                    // Validate frame
+                    if (frame->DataLen == 0 || frame->DataLen > 8)
+                    {
+                        continue;
+                    }
+
+                    // Filter: only radar messages
+                    if (frame->ID != RadarSr71.ID_HEADER &&
+                        frame->ID != RadarSr71.ID_OBJECT)
+                    {
+                        continue;
+                    }
+
+                    // Copy data to managed array
+                    byte[] data = new byte[frame->DataLen];
+                    for (int j = 0; j < frame->DataLen; j++)
+                    {
+                        data[j] = frame->Data[j];
+                    }
+
+                    // Process radar frame
+                    try
+                    {
+                        radar.ProcessFrame(frame->ID, data);
+                        totalFramesReceived++;
+                    }
+                    catch (Exception ex)
+                    {
+                        totalParseErrors++;
+                        System.Diagnostics.Debug.WriteLine($"ERROR: Radar parse error: {ex.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ERROR: Frame processing error: {ex.Message}");
+                }
+            }
+
+            // Commit complete radar frame
+            if (radar.FrameComplete)
+            {
+                try
+                {
+                    radar.CommitFrame();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ERROR: Frame commit error: {ex.Message}");
+                }
+            }
+
+            // Periodic statistics
+            LogStatisticsPeriodically();
+        }
+
+        // ===== STATISTICS =====
+        private void LogStatisticsPeriodically()
+        {
+            long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            if (now - lastStatsLogTime > STATS_LOG_INTERVAL_MS)
+            {
+                LogStatistics();
+                lastStatsLogTime = now;
+            }
+        }
+
+        private void LogStatistics()
+        {
+            if (totalFramesReceived > 0)
+            {
+                double errorRate = (double)totalParseErrors / totalFramesReceived * 100;
+                System.Diagnostics.Debug.WriteLine(
+                    $"CAN Stats: Frames={totalFramesReceived}, Errors={totalParseErrors} ({errorRate:F2}%)");
+            }
+        }
+
+        // ===== PUBLIC STATUS =====
+        public bool IsRunning => running;
+
+        public long TotalFramesReceived => totalFramesReceived;
+
+        public long TotalParseErrors => totalParseErrors;
+
+        // ===== IDISPOSABLE =====
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            lock (disposeLock)
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                if (disposing)
+                {
+                    Stop();
+                }
+
+                disposed = true;
+            }
+        }
+
+        ~UsbCanZlg()
+        {
+            Dispose(false);
         }
     }
 }
