@@ -1,153 +1,191 @@
 ﻿using System;
 using System.Collections.Generic;
-
 namespace AgOpenGPS
 {
-    /// <summary>
-    /// Парсер радара SR71 / AFM711 (Protocol EN 1.5)
-    /// NodeID = 1  → CAN ID 0x61A / 0x61B
-    /// </summary>
-    public class RadarSr71
+    /// <summary>
+    /// Парсер радара SR71 / AFM711 (Protocol EN 1.5)
+    /// NodeID = 1 → CAN ID 0x61A / 0x61B
+    /// </summary>
+    public class RadarSr71
     {
         public const uint ID_HEADER = 0x61A;
         public const uint ID_OBJECT = 0x61B;
-
-        public class RadarObject
+        // ===== RAW RADAR OBJECT =====
+        public class RadarObject
         {
             public int Id;
-            public double X;   // lateral (m)
-            public double Y;   // longitudinal (m)
-            public double Vx;
+            public double X; // lateral (m)
+            public double Y; // longitudinal (m)
+            public double Vx;
             public double Vy;
             public int DynProp;
             public double Rcs;
         }
-
-        public List<RadarObject> Objects = new List<RadarObject>();
-
-        int expectedObjects = 0;
-        int receivedObjects = 0;
-        ushort measurementCounter = 0;
-
-        public double RadarOffsetY = 0.0; // вперёд (+) / назад (−)
-        public double ToolHalfWidth = 0.0;
-        public double MaxDistanceY = 30.0;  // дальность контроля
-
+        // ===== THREAD SAFETY =====
+        private readonly object locker = new object();
+        // Буфер кадра (заполняется CAN-потоком)
+        private readonly List<RadarObject> frameObjects = new List<RadarObject>();
+        // Стабильный буфер (читается UI)
+        private readonly List<RadarObject> stableObjects = new List<RadarObject>();
+        private int expectedObjects = 0;
+        private int receivedObjects = 0;
+        private ushort measurementCounter = 0;
+        // ===== SETTINGS =====
+        public double RadarOffsetY = 0.0; // смещение радара вперед
+        public double ToolHalfWidth = 0.0;
+        public double MaxDistanceY = 30.0;
         public double SteerAngleRad = 0.0;
-
-        public bool FrameComplete =>
-                expectedObjects > 0 && receivedObjects == expectedObjects;
-
-        /// <summary>
-        /// Вызывать для каждого CAN кадра радара
-        /// </summary>
-
-        static void Rotate(double x, double y, double angleRad, out double xr, out double yr)
+        // ===== ROTATION =====
+        private static void Rotate(double x, double y, double angleRad,
+out double xr, out double yr)
         {
             double cos = Math.Cos(angleRad);
             double sin = Math.Sin(angleRad);
-
             xr = x * cos + y * sin;
             yr = y * cos - x * sin;
         }
-
-        public void ProcessFrame(uint canId, byte[] data)
+        // ===== ENTRY POINT =====
+        public void ProcessFrame(uint canId, byte[] data)
         {
             if (canId == ID_HEADER)
                 ParseHeader(data);
             else if (canId == ID_OBJECT)
                 ParseObject(data);
         }
-
-        public void ResetFrame()
+        // ===== HEADER =====
+        private void ParseHeader(byte[] d)
         {
-            expectedObjects = 0;
-            receivedObjects = 0;
+            lock (locker)
+            {
+                expectedObjects = d[0];
+                measurementCounter = (ushort)(d[2] | (d[3] << 8));
+                frameObjects.Clear();
+                receivedObjects = 0;
+            }
         }
-
-        // ===== 0x61A =====
-        void ParseHeader(byte[] d)
+        // ===== OBJECT =====
+        private void ParseObject(byte[] d)
         {
-            expectedObjects = d[0];
-            measurementCounter = (ushort)(d[2] | (d[3] << 8));
-
-            Objects.Clear();
-            receivedObjects = 0;
-
-            System.Diagnostics.Debug.WriteLine(
-                $"RADAR HEADER: objects={expectedObjects}, measCnt={measurementCounter}");
+            lock (locker)
+            {
+                if (receivedObjects >= expectedObjects)
+                    return;
+                RadarObject obj = new RadarObject
+                {
+                    Id = d[0]
+                };
+                int rawDistLong = (d[1] << 5) | (d[2] >> 3);
+                obj.Y = rawDistLong * 0.1 - 500.0;
+                int rawDistLat = ((d[2] & 0x07) << 8) | d[3];
+                obj.X = rawDistLat * 0.1 - 102.3;
+                int rawVLong = (d[4] << 2) | (d[5] >> 6);
+                obj.Vy = rawVLong * 0.25 - 128.0;
+                int rawVLat = ((d[5] & 0x3F) << 3) | (d[6] >> 5);
+                obj.Vx = rawVLat * 0.25 - 64.0;
+                obj.DynProp = d[6] & 0x07;
+                obj.Rcs = d[7] * 0.5 - 64.0;
+                frameObjects.Add(obj);
+                receivedObjects++;
+            }
         }
-
-        // ===== 0x61B =====
-        void ParseObject(byte[] d)
+        // ===== FRAME COMPLETE =====
+        public bool FrameComplete
         {
-            if (receivedObjects >= expectedObjects)
-                return;
-
-            RadarObject obj = new RadarObject();
-
-            obj.Id = d[0];
-
-            // ---- DistLong (m) ----
-            int rawDistLong = (d[1] << 5) | (d[2] >> 3);
-            obj.Y = rawDistLong * 0.1 - 500.0;
-
-            // ---- DistLat (m) ----
-            int rawDistLat = ((d[2] & 0x07) << 8) | d[3];
-            obj.X = rawDistLat * 0.1 - 102.3;
-
-            // ---- VrelLong (m/s) ----
-            int rawVLong = (d[4] << 2) | (d[5] >> 6);
-            obj.Vy = rawVLong * 0.25 - 128.0;
-
-            // ---- VrelLat (m/s) ----
-            int rawVLat = ((d[5] & 0x3F) << 3) | (d[6] >> 5);
-            obj.Vx = rawVLat * 0.25 - 64.0;
-
-            // ---- Dynamic property ----
-            obj.DynProp = d[6] & 0x07;
-
-            // ---- RCS ----
-            obj.Rcs = d[7] * 0.5 - 64.0;
-
-            Objects.Add(obj);
-            receivedObjects++;
-
-            System.Diagnostics.Debug.WriteLine(
-                $"OBJ {obj.Id}: X={obj.X:F1}m Y={obj.Y:F1}m Vx={obj.Vx:F1} Vy={obj.Vy:F1}");
+            get
+            {
+                lock (locker)
+                    return expectedObjects > 0 &&
+                    receivedObjects == expectedObjects;
+            }
         }
-        /// <summary>
-        /// Преобразовать объекты радара в формат CRadar
-        /// Вызывать 1 раз после получения всех объектов кадра
-        /// </summary>
-        public List<CRadar.RadarObject> GetCRadarObjects()
+        // ===== COMMIT FRAME =====
+        public void CommitFrame()
         {
+            lock (locker)
+            {
+                stableObjects.Clear();
+                stableObjects.AddRange(frameObjects);
+                expectedObjects = 0;
+                receivedObjects = 0;
+            }
+        }
+        // ===== STANDARD MODE =====
+        public List<CRadar.RadarObject> GetCRadarObjects()
+        {
+            List<RadarObject> snapshot;
+            lock (locker)
+                snapshot = new List<RadarObject>(stableObjects);
             List<CRadar.RadarObject> list = new List<CRadar.RadarObject>();
-
-            foreach (RadarObject o in Objects)
+            foreach (var o in snapshot)
             {
                 double x = o.X;
                 double y = o.Y + RadarOffsetY;
-
-                // поворачиваем в систему руля
                 Rotate(x, y, -SteerAngleRad, out double xr, out double yr);
-
-                // фильтр по ширине орудия
                 if (Math.Abs(xr) > ToolHalfWidth)
                     continue;
-
-                // возвращаем обратно
                 Rotate(xr, yr, SteerAngleRad, out double xf, out double yf);
-
+                if (yf < 0 || yf > MaxDistanceY)
+                    continue;
                 list.Add(new CRadar.RadarObject
                 {
                     X = xf,
                     Y = yf
                 });
             }
-
             return list;
         }
-
+        // ===== YOUTURN MODE =====
+        public List<CRadar.RadarObject> GetObjectsOnYouTurnPath(
+List<vec3> ytLocalPath,
+double halfWidth)
+        {
+            List<RadarObject> snapshot;
+            lock (locker)
+                snapshot = new List<RadarObject>(stableObjects);
+            List<CRadar.RadarObject> dangerous = new List<CRadar.RadarObject>();
+            if (ytLocalPath == null || ytLocalPath.Count < 2)
+                return dangerous;
+            foreach (var obj in snapshot)
+            {
+                double ox = obj.X;
+                double oy = obj.Y + RadarOffsetY;
+                for (int i = 0; i < Math.Min(ytLocalPath.Count - 1, 50); i++)
+                {
+                    double dist = DistToSegment(
+                    ox, oy,
+                    ytLocalPath[i].easting, ytLocalPath[i].northing,
+                    ytLocalPath[i + 1].easting, ytLocalPath[i + 1].northing);
+                    if (dist < halfWidth)
+                    {
+                        dangerous.Add(new CRadar.RadarObject
+                        {
+                            X = ox,
+                            Y = oy
+                        });
+                        break;
+                    }
+                }
+            }
+            return dangerous;
+        }
+        // ===== DISTANCE =====
+        private static double DistToSegment(
+double px, double py,
+double x1, double y1,
+double x2, double y2)
+        {
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            if (dx == 0 && dy == 0)
+                return Math.Sqrt((px - x1) * (px - x1) +
+                (py - y1) * (py - y1));
+            double t = ((px - x1) * dx + (py - y1) * dy) /
+            (dx * dx + dy * dy);
+            t = Math.Max(0, Math.Min(1, t));
+            double cx = x1 + t * dx;
+            double cy = y1 + t * dy;
+            return Math.Sqrt((px - cx) * (px - cx) +
+            (py - cy) * (py - cy));
+        }
     }
 }

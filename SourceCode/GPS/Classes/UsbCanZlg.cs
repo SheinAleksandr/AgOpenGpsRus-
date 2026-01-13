@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace AgOpenGPS
 {
-    public class UsbCanZlg
+    public unsafe class UsbCanZlg
     {
         // ===== ZLG constants =====
         const uint DEVICE_TYPE = 4;   // VCI_USBCAN1
@@ -56,31 +56,29 @@ namespace AgOpenGPS
             public byte RemoteFlag;
             public byte ExternFlag;
             public byte DataLen;
-
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-            public byte[] Data;
-
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-            public byte[] Reserved;
+            public fixed byte Data[8];
+            public fixed byte Reserved[3];
         }
 
         // ===== FIELDS =====
-        Thread rxThread;
-        volatile bool running;
+        private Thread rxThread;
+        private volatile bool running;
 
-        IntPtr rxBuffer;
-        int objSize;
+        private IntPtr rxBuffer;
+        private int objSize;
 
-        public RadarSr71 radar = new RadarSr71(); //парсит кан
-        public CRadar cradar = new CRadar(); // ресует
-
+        // ===== RADAR =====
+        public readonly RadarSr71 radar = new RadarSr71();
+        public readonly CRadar cradar = new CRadar();
 
         // ===== START =====
         public bool Start()
         {
-            radar.ToolHalfWidth = Properties.Settings.Default.setVehicle_toolWidth * 0.5;
+            radar.ToolHalfWidth =
+                Properties.Settings.Default.setVehicle_toolWidth * 0.5;
+
             radar.RadarOffsetY =
-                    Properties.Settings.Default.setVehicle_radarOffsetY;
+                Properties.Settings.Default.setVehicle_radarOffsetY;
 
             if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
                 return false;
@@ -92,7 +90,7 @@ namespace AgOpenGPS
                 Filter = 1,
                 Mode = 0,
 
-                // 500 kbit/s for ZLG
+                // 500 kbit/s
                 Timing0 = 0x00,
                 Timing1 = 0x1C
             };
@@ -103,12 +101,14 @@ namespace AgOpenGPS
             if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
                 return false;
 
-            objSize = Marshal.SizeOf<VCI_CAN_OBJ>();
+            objSize = sizeof(VCI_CAN_OBJ);
             rxBuffer = Marshal.AllocHGlobal(objSize * 100);
 
             running = true;
-            rxThread = new Thread(ReceiveLoop);
-            rxThread.IsBackground = true;
+            rxThread = new Thread(ReceiveLoop)
+            {
+                IsBackground = true
+            };
             rxThread.Start();
 
             System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STARTED");
@@ -122,8 +122,7 @@ namespace AgOpenGPS
 
             try
             {
-                if (rxThread != null && rxThread.IsAlive)
-                    rxThread.Join(300);
+                rxThread?.Join(300);
             }
             catch { }
 
@@ -134,12 +133,11 @@ namespace AgOpenGPS
             }
 
             VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
-
             System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STOPPED");
         }
 
         // ===== RECEIVE LOOP =====
-        void ReceiveLoop()
+        private void ReceiveLoop()
         {
             try
             {
@@ -157,36 +155,28 @@ namespace AgOpenGPS
                     {
                         for (int i = 0; i < count; i++)
                         {
-                            IntPtr ptr = IntPtr.Add(rxBuffer, i * objSize);
-                            VCI_CAN_OBJ frame;
-                            try
-                            {
-                                frame = Marshal.PtrToStructure<VCI_CAN_OBJ>(ptr);
-                            }
-                            catch
-                            {
-                                continue;
-                            }
+                            VCI_CAN_OBJ* frame =
+                                (VCI_CAN_OBJ*)((byte*)rxBuffer + i * objSize);
 
-                            if (frame.DataLen == 0 || frame.Data == null)
+                            if (frame->DataLen == 0 || frame->DataLen > 8)
                                 continue;
 
-                            int len = Math.Min((int)frame.DataLen, 8);
-                            byte[] data = new byte[len];
-                            Array.Copy(frame.Data, data, len);
+                            // ===== FILTER RADAR =====
+                            if (frame->ID != RadarSr71.ID_HEADER &&
+                                frame->ID != RadarSr71.ID_OBJECT)
+                                continue;
 
-                            // ===== FILTER RADAR ONLY =====
-                            if (frame.ID == 0x61A || frame.ID == 0x61B)
-                            {
-                                radar.ProcessFrame(frame.ID, data);
-                            }
+                            byte[] data = new byte[frame->DataLen];
+                            for (int j = 0; j < frame->DataLen; j++)
+                                data[j] = frame->Data[j];
+
+                            radar.ProcessFrame(frame->ID, data);
                         }
+
+                        // Кадр завершён — просто сбрасываем флаг
                         if (radar.FrameComplete)
                         {
-                            var objs = radar.GetCRadarObjects();
-                            cradar.Update(objs);
-
-                            radar.ResetFrame();
+                            radar.CommitFrame();
                         }
                     }
 
@@ -195,7 +185,7 @@ namespace AgOpenGPS
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("USB-CAN RX ERROR: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("USB-CAN RX ERROR: " + ex);
             }
         }
     }
