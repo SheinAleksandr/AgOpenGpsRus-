@@ -35,6 +35,8 @@ namespace AgOpenGPS
         public double ToolHalfWidth = 0.0;
         public double MaxDistanceY = 30.0;
         public double SteerAngleRad = 0.0;
+        public double TractorSpeedLong = 0.0; // m/s, вперед +
+        public double TractorSpeedLat = 0.0;  // m/s, вправо +
         // ===== ROTATION =====
         private static void Rotate(double x, double y, double angleRad,
 out double xr, out double yr)
@@ -125,7 +127,9 @@ out double xr, out double yr)
                 Rotate(xr, yr, SteerAngleRad, out double xf, out double yf);
                 if (yf < 0 || yf > MaxDistanceY)
                     continue;
-                double speed = Math.Sqrt(o.Vx * o.Vx + o.Vy * o.Vy);
+                double absVx = o.Vx + TractorSpeedLat;
+                double absVy = o.Vy + TractorSpeedLong;
+                double speed = Math.Sqrt(absVx * absVx + absVy * absVy);
 
                 RadarClass cls;
 
@@ -181,7 +185,9 @@ out double xr, out double yr)
 
                     if (dist < halfWidth)
                     {
-                        double speed = Math.Abs(obj.Vy);
+                        double absVx = obj.Vx + TractorSpeedLat;
+                        double absVy = obj.Vy + TractorSpeedLong;
+                        double speed = Math.Sqrt(absVx * absVx + absVy * absVy);
 
                         dangerous.Add(new CRadar.RadarObject
                         {
@@ -210,7 +216,7 @@ out double xr, out double yr)
             Rotate(x, y, -SteerAngleRad, out lx, out ly);
         }
         // ===== DISTANCE =====
-        private static double DistToSegment(
+        private static double DistToSegment(
 double px, double py,
 double x1, double y1,
 double x2, double y2)
@@ -227,6 +233,50 @@ double x2, double y2)
             double cy = y1 + t * dy;
             return Math.Sqrt((px - cx) * (px - cx) +
             (py - cy) * (py - cy));
+        }
+
+        public List<CRadar.RadarObject> GetAllRadarObjects()
+        {
+            List<RadarObject> snapshot;
+            lock (locker)
+                snapshot = new List<RadarObject>(stableObjects);
+
+            List<CRadar.RadarObject> list = new List<CRadar.RadarObject>();
+            foreach (var o in snapshot)
+            {
+                double x = o.X;
+                double y = o.Y + RadarOffsetY;
+                Rotate(x, y, -SteerAngleRad, out double xr, out double yr);
+                Rotate(xr, yr, SteerAngleRad, out double xf, out double yf);
+
+                if (yf < 0 || yf > MaxDistanceY)
+                    continue;
+
+                double absVx = o.Vx + TractorSpeedLat;
+                double absVy = o.Vy + TractorSpeedLong;
+                double speed = Math.Sqrt(absVx * absVx + absVy * absVy);
+
+                RadarClass cls;
+
+                if (o.Rcs < -20)
+                    cls = RadarClass.Unknown;
+                else if (o.Rcs < -5)
+                    cls = RadarClass.HumanLike;
+                else if (o.Rcs < 15)
+                    cls = RadarClass.VehicleLike;
+                else
+                    cls = RadarClass.LargeStatic;
+
+                list.Add(new CRadar.RadarObject
+                {
+                    X = xf,
+                    Y = yf,
+                    Speed = speed,
+                    Class = cls
+                });
+            }
+
+            return list;
         }
     }
 }

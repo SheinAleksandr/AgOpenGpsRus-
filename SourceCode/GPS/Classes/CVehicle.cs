@@ -304,6 +304,21 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
 
                 radar.ToolHalfWidth = mf.tool.width * 0.5 + 0.5;
 
+                double speedMps = Math.Abs(mf.avgSpeed) * 0.277777;
+                if (mf.isReverse)
+                    speedMps *= -1.0;
+
+                double radarOffsetY = Properties.Settings.Default.setVehicle_antennaPivot
+                    + Properties.Settings.Default.setVehicle_radarOffsetY;
+
+                double yawRate = 0.0;
+                if (Math.Abs(VehicleConfig.Wheelbase) > 0.001)
+                    yawRate = speedMps * Math.Tan(radar.SteerAngleRad) / VehicleConfig.Wheelbase;
+
+                radar.TractorSpeedLong = speedMps;
+                radar.TractorSpeedLat = yawRate * radarOffsetY;
+                radar.RadarOffsetY = radarOffsetY;
+
                 // ===== ЗОНА КОНТРОЛЯ РАДАРА =====
 
                 // ШИРИНА ИЗ НАСТРОЕК AOG
@@ -321,9 +336,7 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 GL.PushMatrix();
 
                 // смещение от центра поворота (pivot axle) к радару
-                double radarY =
-                    Properties.Settings.Default.setVehicle_antennaOffset
-                  + Properties.Settings.Default.setVehicle_radarOffsetY;
+                double radarY = radarOffsetY;
 
                 GL.Translate(0, radarY, 0);
 
@@ -355,15 +368,16 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 GL.PopMatrix();
 
                 // 1. Обычная зона — ВСЕГДА
-                var stdObjects = radar.GetCRadarObjects();
+                var stdObjects = radar.GetCRadarObjects();
 
                 // ===== ГЛОБАЛЬНЫЙ КОНТРОЛЬ ДВИЖУЩИХСЯ ОБЪЕКТОВ =====
-                var movingObjects = new List<CRadar.RadarObject>();
+                var allObjects = radar.GetAllRadarObjects();
+                var movingOutside = new List<CRadar.RadarObject>();
 
-                foreach (var obj in stdObjects)
+                foreach (var obj in allObjects)
                 {
-                    if (obj.Speed > 0.3) // порог 0.3 м/с
-                        movingObjects.Add(obj);
+                    if (obj.Speed > 0.3 && Math.Abs(obj.X) > radar.ToolHalfWidth)
+                        movingOutside.Add(obj);
                 }
 
                 // 2. YouTurn зона — ТОЛЬКО если есть
@@ -411,6 +425,12 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 else
                 {
                     processedObjects = stdObjects;
+                }
+
+                if (movingOutside.Count > 0)
+                {
+                    processedObjects = new List<CRadar.RadarObject>(processedObjects);
+                    processedObjects.AddRange(movingOutside);
                 }
 
                 // Отрисовка самих объектов (красных точек)
