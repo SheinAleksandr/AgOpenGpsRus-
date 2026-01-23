@@ -926,7 +926,10 @@ namespace AgOpenGPS
 
                 if (!isBtnAutoSteerOn) //32020 means auto steer is off
                 {
-                    guidanceLineDistanceOff = 32020;
+                    if (!(recPath.isDrivingRecordedPath || recPath.isFollowingDubinsToPath))
+                    {
+                        guidanceLineDistanceOff = 32020;
+                    }
                     p_254.pgn[p_254.status] = 0;
                 }
 
