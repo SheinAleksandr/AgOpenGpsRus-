@@ -91,6 +91,11 @@ namespace AgOpenGPS
         private long totalParseErrors = 0;
         private long lastStatsLogTime = 0;
         private const long STATS_LOG_INTERVAL_MS = 30000; // 30 секунд
+        private long lastRadarFrameTime = 0;
+        private long lastReconnectAttemptTime = 0;
+        private const long RADAR_STALE_CLEAR_MS = 700;
+        private const long RADAR_RECONNECT_MS = 3000;
+        private const long RADAR_RECONNECT_COOLDOWN_MS = 2000;
 
         // ===== CONSTRUCTOR =====
         public UsbCanZlg()
@@ -128,31 +133,8 @@ namespace AgOpenGPS
                     }
                     isDeviceOpen = true;
 
-                    // Configure CAN: 500 kbit/s
-                    VCI_INIT_CONFIG cfg = new VCI_INIT_CONFIG
+                    if (!InitializeCan())
                     {
-                        AccCode = 0,
-                        AccMask = 0xFFFFFFFF,
-                        Filter = 1,
-                        Mode = 0,
-                        Timing0 = 0x00,  // 500 kbit/s
-                        Timing1 = 0x1C
-                    };
-
-                    if (VCI_InitCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, ref cfg) == 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine("ERROR: Failed to initialize CAN");
-                        CloseDevice();
-                        return false;
-                    }
-
-                    // Clear buffer
-                    VCI_ClearBuffer(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX);
-
-                    // Start CAN
-                    if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine("ERROR: Failed to start CAN");
                         CloseDevice();
                         return false;
                     }
@@ -170,6 +152,7 @@ namespace AgOpenGPS
                     };
                     rxThread.Start();
 
+                    lastRadarFrameTime = NowMs();
                     System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STARTED successfully");
                     return true;
                 }
@@ -296,6 +279,10 @@ namespace AgOpenGPS
                     {
                         ProcessReceivedFrames(count);
                     }
+                    else
+                    {
+                        HandleInactivity();
+                    }
 
                     Thread.Sleep(THREAD_SLEEP_MS);
                 }
@@ -347,6 +334,7 @@ namespace AgOpenGPS
                     try
                     {
                         radar.ProcessFrame(frame->ID, data);
+                        lastRadarFrameTime = NowMs();
                         totalFramesReceived++;
                     }
                     catch (Exception ex)
@@ -376,6 +364,103 @@ namespace AgOpenGPS
 
             // Periodic statistics
             LogStatisticsPeriodically();
+        }
+
+        private void HandleInactivity()
+        {
+            long now = NowMs();
+            long sinceLast = now - lastRadarFrameTime;
+
+            if (sinceLast > RADAR_STALE_CLEAR_MS)
+            {
+                radar.Clear();
+                cradar.Clear();
+            }
+
+            if (sinceLast > RADAR_RECONNECT_MS && now - lastReconnectAttemptTime > RADAR_RECONNECT_COOLDOWN_MS)
+            {
+                lastReconnectAttemptTime = now;
+                TryReconnectCan();
+            }
+        }
+
+        private bool InitializeCan()
+        {
+            // Configure CAN: 500 kbit/s
+            VCI_INIT_CONFIG cfg = new VCI_INIT_CONFIG
+            {
+                AccCode = 0,
+                AccMask = 0xFFFFFFFF,
+                Filter = 1,
+                Mode = 0,
+                Timing0 = 0x00,  // 500 kbit/s
+                Timing1 = 0x1C
+            };
+
+            if (VCI_InitCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, ref cfg) == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("ERROR: Failed to initialize CAN");
+                return false;
+            }
+
+            // Clear buffer
+            VCI_ClearBuffer(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX);
+
+            // Start CAN
+            if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("ERROR: Failed to start CAN");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void TryReconnectCan()
+        {
+            try
+            {
+                if (isDeviceOpen)
+                {
+                    try
+                    {
+                        VCI_ResetCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX);
+                    }
+                    catch { }
+                    try
+                    {
+                        VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
+                    }
+                    catch { }
+                    isDeviceOpen = false;
+                }
+
+                if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("WARNING: CAN reopen failed (device not present)");
+                    return;
+                }
+
+                isDeviceOpen = true;
+
+                if (!InitializeCan())
+                {
+                    System.Diagnostics.Debug.WriteLine("WARNING: CAN reconnect failed");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("INFO: CAN reinitialized after inactivity");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ERROR: CAN reconnect exception: {ex.Message}");
+            }
+        }
+
+        private static long NowMs()
+        {
+            return DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
         }
 
         // ===== STATISTICS =====

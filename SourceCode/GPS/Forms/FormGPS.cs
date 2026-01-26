@@ -787,6 +787,13 @@ namespace AgOpenGPS
                 catch { }
             }
 
+            if (usbCan != null)
+            {
+                try { usbCan.Stop(); } catch { }
+                try { usbCan.Dispose(); } catch { }
+                usbCan = null;
+            }
+
             // Auto close AgIO process if enabled
             if (Settings.Default.setDisplay_isAutoOffAgIO)
             {

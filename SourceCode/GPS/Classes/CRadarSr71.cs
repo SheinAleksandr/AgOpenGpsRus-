@@ -91,7 +91,7 @@ out double xr, out double yr)
             }
         }
         // ===== FRAME COMPLETE =====
-        public bool FrameComplete
+        public bool FrameComplete
         {
             get
             {
@@ -100,7 +100,7 @@ out double xr, out double yr)
             }
         }
         // ===== COMMIT FRAME =====
-        public void CommitFrame()
+        public void CommitFrame()
         {
             lock (locker)
             {
@@ -108,6 +108,18 @@ out double xr, out double yr)
                 stableObjects.AddRange(frameObjects);
                 expectedObjects = 0;
                 receivedObjects = 0;
+            }
+        }
+
+        public void Clear()
+        {
+            lock (locker)
+            {
+                frameObjects.Clear();
+                stableObjects.Clear();
+                expectedObjects = 0;
+                receivedObjects = 0;
+                measurementCounter = 0;
             }
         }
         // ===== STANDARD MODE =====

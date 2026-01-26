@@ -95,6 +95,14 @@ namespace AgOpenGPS
             }
         }
 
+        public void Clear()
+        {
+            lock (objects)
+            {
+                objects.Clear();
+            }
+        }
+
         // ===== ЦВЕТ ПО ДВИЖЕНИЮ =====
         private static void SetColor(RadarObject o)
         {
