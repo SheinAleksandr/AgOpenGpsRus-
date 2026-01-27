@@ -1,3 +1,26 @@
+## USB-CAN адаптер (ветки radar / radar1)
+
+⚠️ Требования, описанные ниже, **относятся только к веткам `radar` и `radar1`**.
+
+В этих ветках проект использует **USB-CAN адаптер ZLG**
+### Обязательные компоненты
+Для корректной работы необходимо:
+
+1. **Установить драйвер ZLG USB-CAN в систему**
+   - Устройство должно корректно определяться в диспетчере устройств Windows
+   - Используется библиотека `usbcan.dll` (VCI API)
+
+2. **Установить Microsoft Visual C++ Redistributable 2005**
+   - Требуется для работы `usbcan.dll`
+   - Без установленного VC++ 2005 библиотека не загружается
+
+> ⚠️ Даже на Windows 10 / 11 установка **Visual C++ 2005 обязательна**,
+> так как библиотека ZLG собрана под старый рантайм.
+
+### Разрядность
+Разрядность `usbcan.dll` должна совпадать с разрядностью приложения:
+- AgOpenGPS x86 → 32-bit `usbcan.dll`
+ 
 # AgOpenGPS - Guidance software
 
 [![GitHub Release](https://img.shields.io/github/v/release/agopengps-official/AgOpenGPS)](https://github.com/agopengps-official/AgOpenGPS/releases/latest)
