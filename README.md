@@ -1,3 +1,21 @@
+## Ветка master (отличия от стандартной версии)
+
+Ветка `master` содержит расширения по сравнению со стандартной версией AgOpenGPS.
+
+### Основные отличия
+В ветке `master` добавлено:
+
+- **Методы работы с плугом**
+  - режим **всвал**
+  - режим **вразвал**
+  
+- **Изменена логика записанного пути**
+  - записанный путь использует контроль скорости движения   
+
+### Примечание
+Данные изменения отсутствуют в стандартной версии AgOpenGPS
+и реализованы только в ветке `master` данного репозитория.
+
 # AgOpenGPS - Guidance software
 
 [![GitHub Release](https://img.shields.io/github/v/release/agopengps-official/AgOpenGPS)](https://github.com/agopengps-official/AgOpenGPS/releases/latest)
