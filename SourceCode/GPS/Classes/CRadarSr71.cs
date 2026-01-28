@@ -6,7 +6,7 @@ namespace AgOpenGPS
     /// Парсер радара SR71 / AFM711 (Protocol EN 1.5)
     /// NodeID = 1 → CAN ID 0x61A / 0x61B
     /// </summary>
-    public class RadarSr71
+    public class RadarSr71
     {
         public const uint ID_HEADER = 0x61A;
         public const uint ID_OBJECT = 0x61B;
@@ -35,8 +35,6 @@ namespace AgOpenGPS
         public double ToolHalfWidth = 0.0;
         public double MaxDistanceY = 30.0;
         public double SteerAngleRad = 0.0;
-        public double TractorSpeedLong = 0.0; // m/s, вперед +
-        public double TractorSpeedLat = 0.0;  // m/s, вправо +
         // ===== ROTATION =====
         private static void Rotate(double x, double y, double angleRad,
 out double xr, out double yr)
@@ -122,6 +120,11 @@ out double xr, out double yr)
                 measurementCounter = 0;
             }
         }
+
+        private static double ComputeTargetSpeed()
+        {
+            return 0.0;
+        }
         // ===== STANDARD MODE =====
         public List<CRadar.RadarObject> GetCRadarObjects()
         {
@@ -139,10 +142,7 @@ out double xr, out double yr)
                 Rotate(xr, yr, SteerAngleRad, out double xf, out double yf);
                 if (yf < 0 || yf > MaxDistanceY)
                     continue;
-                double absVx = o.Vx + TractorSpeedLat;
-                double absVy = o.Vy + TractorSpeedLong;
-                double speed = Math.Sqrt(absVx * absVx + absVy * absVy);
-
+                double speed = ComputeTargetSpeed();
                 RadarClass cls;
 
                 if (o.Rcs < -20)
@@ -197,9 +197,7 @@ out double xr, out double yr)
 
                     if (dist < halfWidth)
                     {
-                        double absVx = obj.Vx + TractorSpeedLat;
-                        double absVy = obj.Vy + TractorSpeedLong;
-                        double speed = Math.Sqrt(absVx * absVx + absVy * absVy);
+                        double speed = ComputeTargetSpeed();
 
                         dangerous.Add(new CRadar.RadarObject
                         {
@@ -247,7 +245,7 @@ double x2, double y2)
             (py - cy) * (py - cy));
         }
 
-        public List<CRadar.RadarObject> GetAllRadarObjects()
+        public List<CRadar.RadarObject> GetAllRadarObjects()
         {
             List<RadarObject> snapshot;
             lock (locker)
@@ -264,9 +262,7 @@ double x2, double y2)
                 if (yf < 0 || yf > MaxDistanceY)
                     continue;
 
-                double absVx = o.Vx + TractorSpeedLat;
-                double absVy = o.Vy + TractorSpeedLong;
-                double speed = Math.Sqrt(absVx * absVx + absVy * absVy);
+                double speed = ComputeTargetSpeed();
 
                 RadarClass cls;
 

@@ -315,8 +315,6 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 if (Math.Abs(VehicleConfig.Wheelbase) > 0.001)
                     yawRate = speedMps * Math.Tan(radar.SteerAngleRad) / VehicleConfig.Wheelbase;
 
-                radar.TractorSpeedLong = speedMps;
-                radar.TractorSpeedLat = yawRate * radarOffsetY;
                 radar.RadarOffsetY = radarOffsetY;
 
                 // ===== ЗОНА КОНТРОЛЯ РАДАРА =====
@@ -370,18 +368,8 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                 // 1. Обычная зона — ВСЕГДА
                 var stdObjects = radar.GetCRadarObjects();
 
-                // ===== ГЛОБАЛЬНЫЙ КОНТРОЛЬ ДВИЖУЩИХСЯ ОБЪЕКТОВ =====
-                var allObjects = radar.GetAllRadarObjects();
-                var movingOutside = new List<CRadar.RadarObject>();
-
-                foreach (var obj in allObjects)
-                {
-                    if (obj.Speed > 0.3 && Math.Abs(obj.X) > radar.ToolHalfWidth)
-                        movingOutside.Add(obj);
-                }
-
-                // 2. YouTurn зона — ТОЛЬКО если есть
-                var ytObjects = new List<CRadar.RadarObject>();
+                // 2. YouTurn зона — ТОЛЬКО если есть
+                var ytObjects = new List<CRadar.RadarObject>();
                 bool hasYouTurnObjects = false;
                 if (mf.yt.isYouTurnTriggered && mf.yt.ytList != null && mf.yt.ytList.Count > 1)
                 {
@@ -427,14 +415,8 @@ new XyCoord(-svennWidth, VehicleConfig.Wheelbase + svennDist)
                     processedObjects = stdObjects;
                 }
 
-                if (movingOutside.Count > 0)
-                {
-                    processedObjects = new List<CRadar.RadarObject>(processedObjects);
-                    processedObjects.AddRange(movingOutside);
-                }
-
-                // Отрисовка самих объектов (красных точек)
-                mf.usbCan.cradar.Update(processedObjects);
+                // Отрисовка самих объектов (красных точек)
+                mf.usbCan.cradar.Update(processedObjects);
                 mf.usbCan.cradar.Draw();
             }
             GL.LineWidth(1);

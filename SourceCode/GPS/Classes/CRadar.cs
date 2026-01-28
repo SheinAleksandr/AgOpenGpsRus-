@@ -106,8 +106,10 @@ namespace AgOpenGPS
         // ===== ЦВЕТ ПО ДВИЖЕНИЮ =====
         private static void SetColor(RadarObject o)
         {
-            if (o.Speed > 0.3)
-                GL.Color3(1.0, 0.0, 0.0);   // движущийся — красный
+            if (o.Speed < -0.3)
+                GL.Color3(1.0, 0.0, 0.0);   // приближается — красный
+            else if (o.Speed > 0.3)
+                GL.Color3(0.0, 1.0, 0.0);   // удаляется — зелёный
             else
                 GL.Color3(0.5, 0.5, 0.5);   // статичный — серый
         }
