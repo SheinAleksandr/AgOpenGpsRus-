@@ -65,6 +65,7 @@ namespace AgOpenGPS
         // Returns 1 if the lines intersect, otherwis
         public double iE = 0, iN = 0;
 
+
         // the list of possible bounds points
         public List<CClose> turnClosestList = new List<CClose>();
 
@@ -215,6 +216,19 @@ namespace AgOpenGPS
 
             if (uTurnStyle == 0)
             {
+                bool isInnerAhead = false;
+                bool isNeighborBlocked = false;
+                if (rowSkipsWidth >= 0)
+                {
+                    isInnerAhead = IsClosestInnerTurnLineAheadOnAB();
+                    isNeighborBlocked = IsInnerTurnLineCrossingAheadOnNeighborLine();
+                    bool shouldForceWide = isInnerAhead && !isNeighborBlocked;
+                }
+
+                if (isInnerAhead && !isNeighborBlocked)
+                {
+                    return CreateABWideTurn();
+                }
 
                 //Wide turn
                 if (turnOffset > (youTurnRadius * 2.0))
@@ -235,6 +249,70 @@ namespace AgOpenGPS
             //prgramming error if you got here
             return false;
         }
+
+        private bool IsClosestInnerTurnLineAheadOnAB()
+        {
+            if (mf.bnd?.bndList == null || mf.bnd.bndList.Count < 2) return false;
+
+            vec3 onPurePoint = new vec3(mf.ABLine.rEastAB, mf.ABLine.rNorthAB, 0);
+
+            // Reset to avoid stale results when no intersection exists
+            closestTurnPt = new CClose();
+            FindABTurnPoint(onPurePoint);
+
+            if (closestTurnPt.turnLineIndex == -1) return false;
+            if (closestTurnPt.turnLineNum < 1) return false;
+            if (closestTurnPt.turnLineNum >= mf.bnd.bndList.Count) return false;
+            if (mf.bnd.bndList[closestTurnPt.turnLineNum].isDriveThru) return false;
+
+            return true;
+        }
+
+        private bool IsInnerTurnLineCrossingAheadOnNeighborLine()
+        {
+            if (mf.bnd?.bndList == null || mf.bnd.bndList.Count < 2) return false;
+
+            vec2 lineA = mf.ABLine.currentLinePtA.ToVec2();
+            vec2 lineB = mf.ABLine.currentLinePtB.ToVec2();
+
+            double head = mf.ABLine.abHeading;
+            if (!mf.ABLine.isHeadingSameWay) head += Math.PI;
+            if (head >= glm.twoPI) head -= glm.twoPI;
+
+            vec2 forward = new vec2(Math.Sin(head), Math.Cos(head));
+            vec2 leftNormal = new vec2(-forward.northing, forward.easting);
+            double widthMinusOverlap = mf.tool.width - mf.tool.overlap;
+            double offset = isTurnLeft ? widthMinusOverlap : -widthMinusOverlap;
+
+            vec2 offsetA = new vec2(lineA.easting + (leftNormal.easting * offset), lineA.northing + (leftNormal.northing * offset));
+            vec2 offsetB = new vec2(lineB.easting + (leftNormal.easting * offset), lineB.northing + (leftNormal.northing * offset));
+            vec2 pivot = mf.pivotAxlePos.ToVec2();
+
+            for (int b = 1; b < mf.bnd.bndList.Count; b++)
+            {
+                if (mf.bnd.bndList[b].isDriveThru) continue;
+                var turnLine = mf.bnd.bndList[b].turnLine;
+                if (turnLine == null || turnLine.Count < 2) continue;
+
+                for (int i = 0; i < turnLine.Count - 1; i++)
+                {
+                    double iE = 0, iN = 0;
+                    if (GetLineIntersection(
+                        turnLine[i].easting, turnLine[i].northing,
+                        turnLine[i + 1].easting, turnLine[i + 1].northing,
+                        offsetA.easting, offsetA.northing,
+                        offsetB.easting, offsetB.northing,
+                        ref iE, ref iN) == 1)
+                    {
+                        vec2 v = new vec2(iE - pivot.easting, iN - pivot.northing);
+                        if (vec2.Dot(forward, v) > 0) return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
 
         #region CreateTurn
 
