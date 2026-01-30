@@ -143,23 +143,12 @@ out double xr, out double yr)
                 if (yf < 0 || yf > MaxDistanceY)
                     continue;
                 double speed = ComputeTargetSpeed();
-                RadarClass cls;
-
-                if (o.Rcs < -20)
-                    cls = RadarClass.Unknown;
-                else if (o.Rcs < -5)
-                    cls = RadarClass.HumanLike;
-                else if (o.Rcs < 15)
-                    cls = RadarClass.VehicleLike;
-                else
-                    cls = RadarClass.LargeStatic;
-
                 list.Add(new CRadar.RadarObject
                 {
                     X = xf,
                     Y = yf,
                     Speed = speed,
-                    Class = cls
+                    Rcs = o.Rcs
                 });
             }
             return list;
@@ -204,7 +193,7 @@ out double xr, out double yr)
                             X = ox,
                             Y = oy,
                             Speed = speed,
-                            Class = RadarClass.VehicleLike
+                            Rcs = obj.Rcs
                         });
                         break;
                     }
@@ -264,23 +253,12 @@ double x2, double y2)
 
                 double speed = ComputeTargetSpeed();
 
-                RadarClass cls;
-
-                if (o.Rcs < -20)
-                    cls = RadarClass.Unknown;
-                else if (o.Rcs < -5)
-                    cls = RadarClass.HumanLike;
-                else if (o.Rcs < 15)
-                    cls = RadarClass.VehicleLike;
-                else
-                    cls = RadarClass.LargeStatic;
-
                 list.Add(new CRadar.RadarObject
                 {
                     X = xf,
                     Y = yf,
                     Speed = speed,
-                    Class = cls
+                    Rcs = o.Rcs
                 });
             }
 

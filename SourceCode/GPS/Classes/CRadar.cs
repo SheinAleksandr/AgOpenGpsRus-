@@ -3,15 +3,6 @@ using System.Collections.Generic;
 
 namespace AgOpenGPS
 {
-    public enum RadarClass
-    {
-        Unknown,
-        Small,
-        HumanLike,
-        VehicleLike,
-        LargeStatic
-    }
-
     public class CRadar
     {
         public class RadarObject
@@ -19,7 +10,7 @@ namespace AgOpenGPS
             public double X;       // вправо от трактора (м)
             public double Y;       // вперёд (м)
             public double Speed;   // м/с
-            public RadarClass Class;
+            public double Rcs;     // dBsm
         }
 
         private readonly List<RadarObject> objects = new List<RadarObject>();
@@ -39,55 +30,27 @@ namespace AgOpenGPS
             {
                 GL.PushAttrib(AttribMask.PointBit | AttribMask.CurrentBit);
 
-                // ===== UNKNOWN / SMALL =====
-                GL.PointSize(3);
+                // draw red (RCS > 18) larger
+                GL.PointSize(15);
                 GL.Begin(PrimitiveType.Points);
                 foreach (var o in objects)
                 {
-                    if (o.Class == RadarClass.Unknown || o.Class == RadarClass.Small)
-                    {
-                        SetColor(o);
-                        GL.Vertex3(o.X, o.Y, 0.05);
-                    }
+                    if (o.Rcs <= 18.0)
+                        continue;
+                    SetColor(o);
+                    GL.Vertex3(o.X, o.Y, 0.05);
                 }
                 GL.End();
 
-                // ===== HUMAN =====
-                GL.PointSize(6);
+                // draw остальных
+                GL.PointSize(10);
                 GL.Begin(PrimitiveType.Points);
                 foreach (var o in objects)
                 {
-                    if (o.Class == RadarClass.HumanLike)
-                    {
-                        SetColor(o);
-                        GL.Vertex3(o.X, o.Y, 0.05);
-                    }
-                }
-                GL.End();
-
-                // ===== VEHICLE =====
-                GL.PointSize(9);
-                GL.Begin(PrimitiveType.Points);
-                foreach (var o in objects)
-                {
-                    if (o.Class == RadarClass.VehicleLike)
-                    {
-                        SetColor(o);
-                        GL.Vertex3(o.X, o.Y, 0.05);
-                    }
-                }
-                GL.End();
-
-                // ===== LARGE STATIC =====
-                GL.PointSize(5);
-                GL.Begin(PrimitiveType.Points);
-                foreach (var o in objects)
-                {
-                    if (o.Class == RadarClass.LargeStatic)
-                    {
-                        SetColor(o);
-                        GL.Vertex3(o.X, o.Y, 0.05);
-                    }
+                    if (o.Rcs > 18.0)
+                        continue;
+                    SetColor(o);
+                    GL.Vertex3(o.X, o.Y, 0.05);
                 }
                 GL.End();
 
@@ -106,12 +69,12 @@ namespace AgOpenGPS
         // ===== ЦВЕТ ПО ДВИЖЕНИЮ =====
         private static void SetColor(RadarObject o)
         {
-            if (o.Speed < -0.3)
-                GL.Color3(1.0, 0.0, 0.0);   // приближается — красный
-            else if (o.Speed > 0.3)
-                GL.Color3(0.0, 1.0, 0.0);   // удаляется — зелёный
+            if (o.Rcs > 18.0)
+                GL.Color3(1.0, 0.0, 0.0);   // > 18 — красный
+            else if (o.Rcs >= 15.0)
+                GL.Color3(1.0, 1.0, 0.0);   // 15..18 — жёлтый
             else
-                GL.Color3(0.5, 0.5, 0.5);   // статичный — серый
+                GL.Color3(0.5, 0.5, 0.5);   // < 15 — серый
         }
     }
 }
