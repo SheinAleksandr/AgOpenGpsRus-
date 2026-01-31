@@ -8,6 +8,7 @@ namespace AgOpenGPS
     /// </summary>
     public class RadarSr71
     {
+        public byte SensorId = 1;
         public const uint ID_HEADER = 0x61A;
         public const uint ID_OBJECT = 0x61B;
         // ===== RAW RADAR OBJECT =====

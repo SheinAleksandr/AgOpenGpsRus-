@@ -66,7 +66,7 @@ namespace AgOpenGPS
             }
         }
 
-        // ===== ЦВЕТ ПО ДВИЖЕНИЮ =====
+        // ===== ЦВЕТ ПО ОТРАЖЕНИЮ =====
         private static void SetColor(RadarObject o)
         {
             if (o.Rcs > 18.0)

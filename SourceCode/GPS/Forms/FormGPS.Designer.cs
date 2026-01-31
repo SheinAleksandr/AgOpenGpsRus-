@@ -192,6 +192,7 @@ namespace AgOpenGPS
             this.panelControlBox = new System.Windows.Forms.Panel();
             this.btnChargeStatus = new System.Windows.Forms.Button();
             this.btnGPSData = new System.Windows.Forms.Button();
+            this.btnRadarSens = new System.Windows.Forms.Button();
             this.btnShutdown = new System.Windows.Forms.Button();
             this.btnMaximizeMainForm = new System.Windows.Forms.Button();
             this.btnMinimizeMainForm = new System.Windows.Forms.Button();
@@ -1148,7 +1149,7 @@ namespace AgOpenGPS
             this.panelSim.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.panelSim.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 56F));
             this.panelSim.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.panelSim.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 70F));
+            this.panelSim.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 82F));
             this.panelSim.Controls.Add(this.btnSpeedDn, 5, 0);
             this.panelSim.Controls.Add(this.btnSimSpeedUp, 7, 0);
             this.panelSim.Controls.Add(this.btnResetSim, 0, 0);
@@ -1173,7 +1174,7 @@ namespace AgOpenGPS
             this.btnSpeedDn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSpeedDn.Location = new System.Drawing.Point(333, 4);
             this.btnSpeedDn.Name = "btnSpeedDn";
-            this.btnSpeedDn.Size = new System.Drawing.Size(71, 34);
+            this.btnSpeedDn.Size = new System.Drawing.Size(65, 34);
             this.btnSpeedDn.TabIndex = 533;
             this.btnSpeedDn.UseVisualStyleBackColor = false;
             this.btnSpeedDn.MouseDown += new System.Windows.Forms.MouseEventHandler(this.btnSpeedDn_MouseDown);
@@ -1186,9 +1187,9 @@ namespace AgOpenGPS
             this.btnSimSpeedUp.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnSimSpeedUp.FlatAppearance.BorderSize = 0;
             this.btnSimSpeedUp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSimSpeedUp.Location = new System.Drawing.Point(468, 4);
+            this.btnSimSpeedUp.Location = new System.Drawing.Point(462, 4);
             this.btnSimSpeedUp.Name = "btnSimSpeedUp";
-            this.btnSimSpeedUp.Size = new System.Drawing.Size(71, 34);
+            this.btnSimSpeedUp.Size = new System.Drawing.Size(65, 34);
             this.btnSimSpeedUp.TabIndex = 532;
             this.btnSimSpeedUp.UseVisualStyleBackColor = false;
             this.btnSimSpeedUp.MouseDown += new System.Windows.Forms.MouseEventHandler(this.btnSimSpeedUp_MouseDown);
@@ -1202,7 +1203,7 @@ namespace AgOpenGPS
             this.btnSimSetSpeedToZero.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSimSetSpeedToZero.Font = new System.Drawing.Font("Tahoma", 9.75F);
             this.btnSimSetSpeedToZero.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnSimSetSpeedToZero.Location = new System.Drawing.Point(411, 4);
+            this.btnSimSetSpeedToZero.Location = new System.Drawing.Point(405, 4);
             this.btnSimSetSpeedToZero.Name = "btnSimSetSpeedToZero";
             this.btnSimSetSpeedToZero.Size = new System.Drawing.Size(50, 34);
             this.btnSimSetSpeedToZero.TabIndex = 453;
@@ -1219,7 +1220,7 @@ namespace AgOpenGPS
             this.btnSimReverseDirection.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSimReverseDirection.Font = new System.Drawing.Font("Tahoma", 9.75F);
             this.btnSimReverseDirection.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnSimReverseDirection.Location = new System.Drawing.Point(561, 4);
+            this.btnSimReverseDirection.Location = new System.Drawing.Point(555, 4);
             this.btnSimReverseDirection.Name = "btnSimReverseDirection";
             this.btnSimReverseDirection.Size = new System.Drawing.Size(35, 34);
             this.btnSimReverseDirection.TabIndex = 537;
@@ -1520,7 +1521,7 @@ namespace AgOpenGPS
             this.lblSpeed.Font = new System.Drawing.Font("Arial", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSpeed.ForeColor = System.Drawing.Color.Black;
             this.lblSpeed.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.lblSpeed.Location = new System.Drawing.Point(193, 7);
+            this.lblSpeed.Location = new System.Drawing.Point(289, 7);
             this.lblSpeed.Margin = new System.Windows.Forms.Padding(0);
             this.lblSpeed.Name = "lblSpeed";
             this.lblSpeed.Size = new System.Drawing.Size(87, 35);
@@ -2765,14 +2766,15 @@ namespace AgOpenGPS
             this.panelControlBox.BackColor = System.Drawing.Color.Transparent;
             this.panelControlBox.Controls.Add(this.btnChargeStatus);
             this.panelControlBox.Controls.Add(this.btnGPSData);
+            this.panelControlBox.Controls.Add(this.btnRadarSens);
             this.panelControlBox.Controls.Add(this.lblSpeed);
             this.panelControlBox.Controls.Add(this.btnShutdown);
             this.panelControlBox.Controls.Add(this.btnMaximizeMainForm);
             this.panelControlBox.Controls.Add(this.btnMinimizeMainForm);
             this.panelControlBox.Controls.Add(this.btnFieldStats);
-            this.panelControlBox.Location = new System.Drawing.Point(508, 4);
+            this.panelControlBox.Location = new System.Drawing.Point(412, 4);
             this.panelControlBox.Name = "panelControlBox";
-            this.panelControlBox.Size = new System.Drawing.Size(489, 43);
+            this.panelControlBox.Size = new System.Drawing.Size(585, 43);
             this.panelControlBox.TabIndex = 542;
             // 
             // btnChargeStatus
@@ -2787,7 +2789,7 @@ namespace AgOpenGPS
             this.btnChargeStatus.Font = new System.Drawing.Font("Tahoma", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnChargeStatus.Image = global::AgOpenGPS.Properties.Resources.ChargeIndicator;
             this.btnChargeStatus.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnChargeStatus.Location = new System.Drawing.Point(86, 5);
+            this.btnChargeStatus.Location = new System.Drawing.Point(182, 5);
             this.btnChargeStatus.Name = "btnChargeStatus";
             this.btnChargeStatus.Size = new System.Drawing.Size(25, 32);
             this.btnChargeStatus.TabIndex = 537;
@@ -2805,12 +2807,22 @@ namespace AgOpenGPS
             this.btnGPSData.Font = new System.Drawing.Font("Tahoma", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnGPSData.Image = global::AgOpenGPS.Properties.Resources.GPSQuality;
             this.btnGPSData.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnGPSData.Location = new System.Drawing.Point(124, 2);
+            this.btnGPSData.Location = new System.Drawing.Point(220, 2);
             this.btnGPSData.Name = "btnGPSData";
             this.btnGPSData.Size = new System.Drawing.Size(52, 38);
             this.btnGPSData.TabIndex = 536;
             this.btnGPSData.UseVisualStyleBackColor = false;
             this.btnGPSData.Click += new System.EventHandler(this.btnGPSData_Click);
+            // 
+            // btnRadarSens
+            // 
+            this.btnRadarSens.Location = new System.Drawing.Point(7, 3);
+            this.btnRadarSens.Name = "btnRadarSens";
+            this.btnRadarSens.Size = new System.Drawing.Size(88, 37);
+            this.btnRadarSens.TabIndex = 544;
+            this.btnRadarSens.Text = "RadNorm";
+            this.btnRadarSens.UseVisualStyleBackColor = true;
+            this.btnRadarSens.Click += new System.EventHandler(this.btnRadarSens_Click);
             // 
             // btnShutdown
             // 
@@ -2823,7 +2835,7 @@ namespace AgOpenGPS
             this.btnShutdown.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
             this.btnShutdown.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnShutdown.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnShutdown.Location = new System.Drawing.Point(434, 3);
+            this.btnShutdown.Location = new System.Drawing.Point(530, 3);
             this.btnShutdown.Name = "btnShutdown";
             this.btnShutdown.Size = new System.Drawing.Size(52, 38);
             this.btnShutdown.TabIndex = 447;
@@ -2843,7 +2855,7 @@ namespace AgOpenGPS
             this.btnMaximizeMainForm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnMaximizeMainForm.Font = new System.Drawing.Font("Tahoma", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnMaximizeMainForm.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnMaximizeMainForm.Location = new System.Drawing.Point(361, 3);
+            this.btnMaximizeMainForm.Location = new System.Drawing.Point(457, 3);
             this.btnMaximizeMainForm.Name = "btnMaximizeMainForm";
             this.btnMaximizeMainForm.Size = new System.Drawing.Size(52, 38);
             this.btnMaximizeMainForm.TabIndex = 482;
@@ -2863,7 +2875,7 @@ namespace AgOpenGPS
             this.btnMinimizeMainForm.Font = new System.Drawing.Font("Tahoma", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnMinimizeMainForm.ForeColor = System.Drawing.Color.DimGray;
             this.btnMinimizeMainForm.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnMinimizeMainForm.Location = new System.Drawing.Point(290, 3);
+            this.btnMinimizeMainForm.Location = new System.Drawing.Point(386, 3);
             this.btnMinimizeMainForm.Name = "btnMinimizeMainForm";
             this.btnMinimizeMainForm.Size = new System.Drawing.Size(52, 38);
             this.btnMinimizeMainForm.TabIndex = 481;
@@ -2884,12 +2896,11 @@ namespace AgOpenGPS
             this.btnFieldStats.Font = new System.Drawing.Font("Tahoma", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnFieldStats.Image = global::AgOpenGPS.Properties.Resources.FieldStats;
             this.btnFieldStats.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnFieldStats.Location = new System.Drawing.Point(2, 2);
+            this.btnFieldStats.Location = new System.Drawing.Point(101, 2);
             this.btnFieldStats.Name = "btnFieldStats";
             this.btnFieldStats.Size = new System.Drawing.Size(75, 38);
             this.btnFieldStats.TabIndex = 535;
             this.btnFieldStats.UseVisualStyleBackColor = false;
-            this.btnFieldStats.Visible = false;
             this.btnFieldStats.Click += new System.EventHandler(this.btnFieldStats_Click);
             // 
             // lblHardwareMessage
@@ -3156,6 +3167,7 @@ namespace AgOpenGPS
         private System.Windows.Forms.ToolStripMenuItem profileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem newProfileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem loadProfileToolStripMenuItem;
+        private System.Windows.Forms.Button btnRadarSens;
     }
 }
 

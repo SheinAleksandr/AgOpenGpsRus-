@@ -42,6 +42,14 @@ namespace AgOpenGPS
             int waitTime);
 
         [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
+        private static extern int VCI_Transmit(
+            uint type,
+            uint index,
+            uint canInd,
+            IntPtr pSend,
+            uint len);
+
+        [DllImport("usbcan.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern uint VCI_ClearBuffer(uint type, uint index, uint canInd);
 
         // ===== STRUCTS =====
@@ -491,6 +499,42 @@ namespace AgOpenGPS
         public long TotalFramesReceived => totalFramesReceived;
 
         public long TotalParseErrors => totalParseErrors;
+
+        public bool SendRadarSensitivity(byte sensitivity)
+        {
+            uint msgId = 0x500 + (uint)(radar.SensorId * 0x10);
+            byte[] data = new byte[8]
+            {
+                0x96, 0x01, sensitivity, 0x00, 0x00, 0x00, 0x00, 0x00
+            };
+            return SendCanFrame(msgId, data);
+        }
+
+        private bool SendCanFrame(uint id, byte[] data)
+        {
+            if (!isDeviceOpen || data == null || data.Length > 8)
+                return false;
+
+            VCI_CAN_OBJ frame = new VCI_CAN_OBJ
+            {
+                ID = id,
+                TimeStamp = 0,
+                TimeFlag = 0,
+                SendType = 0,
+                RemoteFlag = 0,
+                ExternFlag = 0,
+                DataLen = (byte)data.Length
+            };
+
+            unsafe
+            {
+                for (int i = 0; i < data.Length; i++)
+                    frame.Data[i] = data[i];
+
+                int sent = VCI_Transmit(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, (IntPtr)(&frame), 1);
+                return sent > 0;
+            }
+        }
 
         // ===== IDISPOSABLE =====
         public void Dispose()

@@ -1768,6 +1768,51 @@ namespace AgOpenGPS
             yt.ResetCreatedYouTurn();
         }
 
+        private void btnRadarSens_Click(object sender, EventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn == null) return;
+
+            string current = btn.Tag as string ?? btn.Text ?? "RadNorm";
+            string next;
+            switch (current)
+            {
+                case "RadNorm":
+                    next = "RadHigh";
+                    break;
+                case "RadHigh":
+                    next = "RadLow";
+                    break;
+                default:
+                    next = "RadNorm";
+                    break;
+            }
+
+            btn.Tag = next;
+            btn.Text = next;
+
+            if (usbCan != null)
+            {
+                byte sens = 5;
+                switch (next)
+                {
+                    case "RadHigh":
+                        sens = 1;
+                        break;
+                    case "RadLow":
+                        sens = 4;
+                        break;
+                    default:
+                        sens = 2;
+                        break;
+                }
+                usbCan.SendRadarSensitivity(sens);
+            }
+
+            Properties.Settings.Default.setRadar_sensitivityMode = next;
+            Properties.Settings.Default.Save();
+        }
+
 
         private void cboxpRowWidth_SelectedIndexChanged(object sender, EventArgs e)
         {

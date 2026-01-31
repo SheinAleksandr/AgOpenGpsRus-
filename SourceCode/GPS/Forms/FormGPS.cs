@@ -306,6 +306,12 @@ namespace AgOpenGPS
 
             InitializeLanguages();
 
+            string radarMode = Properties.Settings.Default.setRadar_sensitivityMode;
+            if (string.IsNullOrEmpty(radarMode))
+                radarMode = "RadNorm";
+            btnRadarSens.Tag = radarMode;
+            btnRadarSens.Text = radarMode;
+
             AppCore = new ApplicationCore(
                 new DirectoryInfo(RegistrySettings.baseDirectory),
                 null,
