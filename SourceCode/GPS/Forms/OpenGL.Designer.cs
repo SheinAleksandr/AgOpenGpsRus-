@@ -278,24 +278,30 @@ namespace AgOpenGPS
 
                     if (patchCounter > 0)
                     {
-                        if (isDay) GL.Color4(sectionColorDay.R, sectionColorDay.G, sectionColorDay.B, (byte)152);
-                        else GL.Color4(sectionColorDay.R, sectionColorDay.G, sectionColorDay.B, (byte)(76));
-
                         for (int j = 0; j < triStrip.Count; j++)
                         {
                             if (triStrip[j].isDrawing)
                             {
-                                if (tool.isMultiColoredSections)
-                                {
-                                    if (isDay) GL.Color4(tool.secColors[j].R, tool.secColors[j].G, tool.secColors[j].B, (byte)152);
-                                    else GL.Color4(tool.secColors[j].R, tool.secColors[j].G, tool.secColors[j].B, (byte)(76));
-                                }
                                 patchCount = triStrip[j].patchList.Count - 1;
 
                                 if (patchCount > -1)
                                 {
                                     try
                                     {
+                                        // Use the active patch header color so yield-based colors are visible immediately.
+                                        byte rr = sectionColorDay.R;
+                                        byte gg = sectionColorDay.G;
+                                        byte bb = sectionColorDay.B;
+                                        if (triStrip[j].patchList[patchCount].Count > 0)
+                                        {
+                                            rr = (byte)triStrip[j].patchList[patchCount][0].easting;
+                                            gg = (byte)triStrip[j].patchList[patchCount][0].northing;
+                                            bb = (byte)triStrip[j].patchList[patchCount][0].heading;
+                                        }
+
+                                        if (isDay) GL.Color4(rr, gg, bb, (byte)152);
+                                        else GL.Color4(rr, gg, bb, (byte)76);
+
                                         //draw the triangle in each triangle strip
                                         GL.Begin(PrimitiveType.TriangleStrip);
 

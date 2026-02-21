@@ -787,6 +787,13 @@ namespace AgOpenGPS
                 catch { }
             }
 
+            // Stop USB-CAN thread/device so adapter is released on app exit.
+            if (usbCan != null)
+            {
+                try { usbCan.Stop(); }
+                catch { }
+            }
+
             // Auto close AgIO process if enabled
             if (Settings.Default.setDisplay_isAutoOffAgIO)
             {

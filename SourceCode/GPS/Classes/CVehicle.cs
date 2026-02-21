@@ -142,13 +142,17 @@ namespace AgOpenGPS
         {
             GL.Rotate(glm.toDegrees(-mf.fixHeading), 0.0, 0.0, 1.0);
 
-            // === update radar steer angle ===
+            // === update CAN-derived data ===
             if (mf.usbCan != null)
             {
                 double steerDeg =
                     mf.timerSim.Enabled ? mf.sim.steerAngle : mf.mc.actualSteerAngleDegrees;
 
-                mf.usbCan.radar.SteerAngleRad = steerDeg * Math.PI / 180.0;
+                // Reuse existing AOG sensor bar (0..255) for optical grain fill level.
+                if (mf.usbCan.grainSensor.HasRecentData())
+                {
+                    mf.mc.sensorData = mf.usbCan.grainSensor.Fill255;
+                }
             }
 
             //mf.font.DrawText3D(0, 0, "&TGF");
@@ -364,39 +368,6 @@ namespace AgOpenGPS
                 GLW.DrawLineStripPrimitive(vertices);
             }
 
-            // ===== Radar zone (steered) =====
-            if (mf.usbCan != null)
-            {
-                double half = mf.tool.width * 0.5;
-
-                GL.PushMatrix();
-
-                // поворот зоны по углу колёс
-                GL.Rotate(
-                    -mf.usbCan.radar.SteerAngleRad * 180.0 / Math.PI,
-                    0.0, 0.0, 1.0);
-
-                GL.LineWidth(2);
-                GL.Color3(0.0, 1.0, 0.0);
-                GL.Begin(PrimitiveType.Lines);
-
-                // левая граница зоны
-                GL.Vertex3(-half, 0, 0);
-                GL.Vertex3(-half, 10, 0);
-
-                // правая граница зоны
-                GL.Vertex3(half, 0, 0);
-                GL.Vertex3(half, 10, 0);
-
-                GL.End();
-                GL.PopMatrix();
-            }
-            // ===== Radar objects =====
-            if (mf.usbCan != null)
-            {
-                mf.usbCan.cradar.Draw();
-            }
-
             GL.LineWidth(1);
         }
 
@@ -416,3 +387,4 @@ namespace AgOpenGPS
 
     }
 }
+

@@ -153,7 +153,6 @@ namespace AgOpenGPS.Properties
         public double setVehicle_maxSteerAngle = 30;
         public int set_youTurnExtensionLength = 20;
         public double setVehicle_antennaOffset = 0;
-        public double setVehicle_radarOffsetY = 0;
         public double set_youTurnDistanceFromBoundary = 2;
         public double setVehicle_goalPointLookAheadMult = 1.5;
         public double stanleyDistanceErrorGain = 1;
@@ -254,6 +253,21 @@ namespace AgOpenGPS.Properties
         public bool AgShareEnabled = false;
         public bool AgShareUploadActive = false;
         public bool isHeadlandDistanceOn = false;
+
+        // Yield-map calibration for combine coloring (proxy units from CAN flow/area model).
+        public double setYieldMap_emptyBaseline = 0.0;
+        // Flow-to-mass scale: kg/s per 1 flow-proxy unit.
+        public double setYieldMap_scaleK = 1.0;
+        // Fixed color scale for yield map in centners per hectare (ц/га).
+        public double setYieldMap_colorMinCha = 0.0;
+        public double setYieldMap_colorMaxCha = 35.0;
+        public string setYieldMap_cropName = "Пшеница";
+        // Transport delay from header cut to sensor (seconds).
+        public double setYieldMap_transportDelaySec = 5.0;
+        // Legacy (no longer used in calculation, kept for backward compatibility in profiles)
+        public bool setYieldMap_isManualCalibration = false;
+        public double setYieldMap_manualMin = 0.0;
+        public double setYieldMap_manualMax = 1.0;
 
         public LoadResult Load()
         {

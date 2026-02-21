@@ -25,6 +25,12 @@ namespace AgOpenGPS
         static extern uint VCI_StartCAN(uint type, uint index, uint canInd);
 
         [DllImport("usbcan.dll")]
+        static extern uint VCI_ResetCAN(uint type, uint index, uint canInd);
+
+        [DllImport("usbcan.dll")]
+        static extern uint VCI_ClearBuffer(uint type, uint index, uint canInd);
+
+        [DllImport("usbcan.dll")]
         static extern int VCI_Receive(
             uint type,
             uint index,
@@ -67,44 +73,84 @@ namespace AgOpenGPS
         // ===== FIELDS =====
         Thread rxThread;
         volatile bool running;
+        volatile bool canOnline;
+        DateTime lastReconnectAttemptUtc = DateTime.MinValue;
+        DateTime lastFrameUtc = DateTime.MinValue;
+        bool hadFramesOnCurrentSession;
+        const int ReconnectIntervalMs = 1000;
+        const int InactivityReconnectMs = 2500;
+        readonly object canLock = new object();
 
         IntPtr rxBuffer;
         int objSize;
 
-        public RadarSr71 radar = new RadarSr71(); //парсит кан
-        public CRadar cradar = new CRadar(); // ресует
+        public GrainCanSensor grainSensor = new GrainCanSensor(); // оптический датчик
 
+        bool TryOpenAndStartCan()
+        {
+            lock (canLock)
+            {
+                if (canOnline) return true;
+
+                if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
+                    return false;
+
+                VCI_INIT_CONFIG cfg = new VCI_INIT_CONFIG
+                {
+                    AccCode = 0,
+                    AccMask = 0xFFFFFFFF,
+                    Filter = 1,
+                    Mode = 0,
+
+                    // 500 kbit/s for ZLG
+                    Timing0 = 0x00,
+                    Timing1 = 0x1C
+                };
+
+                if (VCI_InitCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, ref cfg) == 0)
+                {
+                    VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
+                    return false;
+                }
+
+                if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
+                {
+                    VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
+                    return false;
+                }
+
+                VCI_ClearBuffer(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX);
+                canOnline = true;
+                lastFrameUtc = DateTime.MinValue;
+                hadFramesOnCurrentSession = false;
+                return true;
+            }
+        }
+
+        void CloseCan()
+        {
+            lock (canLock)
+            {
+                if (!canOnline)
+                    return;
+
+                canOnline = false;
+                try { VCI_ResetCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX); } catch { }
+                try { VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX); } catch { }
+            }
+        }
 
         // ===== START =====
         public bool Start()
         {
-            radar.ToolHalfWidth = Properties.Settings.Default.setVehicle_toolWidth * 0.5;
-            radar.RadarOffsetY =
-                    Properties.Settings.Default.setVehicle_radarOffsetY;
-
-            if (VCI_OpenDevice(DEVICE_TYPE, DEVICE_INDEX, 0) == 0)
-                return false;
-
-            VCI_INIT_CONFIG cfg = new VCI_INIT_CONFIG
-            {
-                AccCode = 0,
-                AccMask = 0xFFFFFFFF,
-                Filter = 1,
-                Mode = 0,
-
-                // 500 kbit/s for ZLG
-                Timing0 = 0x00,
-                Timing1 = 0x1C
-            };
-
-            if (VCI_InitCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, ref cfg) == 0)
-                return false;
-
-            if (VCI_StartCAN(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX) == 0)
-                return false;
-
             objSize = Marshal.SizeOf<VCI_CAN_OBJ>();
             rxBuffer = Marshal.AllocHGlobal(objSize * 100);
+
+            bool startedNow = TryOpenAndStartCan();
+            if (!startedNow)
+            {
+                System.Diagnostics.Debug.WriteLine("ZLG USB-CAN NOT READY, waiting for reconnect...");
+            }
 
             running = true;
             rxThread = new Thread(ReceiveLoop);
@@ -112,7 +158,7 @@ namespace AgOpenGPS
             rxThread.Start();
 
             System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STARTED");
-            return true;
+            return startedNow;
         }
 
         // ===== STOP =====
@@ -133,7 +179,7 @@ namespace AgOpenGPS
                 rxBuffer = IntPtr.Zero;
             }
 
-            VCI_CloseDevice(DEVICE_TYPE, DEVICE_INDEX);
+            CloseCan();
 
             System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STOPPED");
         }
@@ -145,6 +191,34 @@ namespace AgOpenGPS
             {
                 while (running)
                 {
+                    if (!canOnline)
+                    {
+                        if ((DateTime.UtcNow - lastReconnectAttemptUtc).TotalMilliseconds >= ReconnectIntervalMs)
+                        {
+                            lastReconnectAttemptUtc = DateTime.UtcNow;
+                            if (TryOpenAndStartCan())
+                            {
+                                System.Diagnostics.Debug.WriteLine("ZLG USB-CAN RECONNECTED");
+                            }
+                        }
+
+                        Thread.Sleep(50);
+                        continue;
+                    }
+
+                    // Driver may stay "online" but stop delivering frames after adapter replug.
+                    if (hadFramesOnCurrentSession &&
+                        lastFrameUtc != DateTime.MinValue &&
+                        (DateTime.UtcNow - lastFrameUtc).TotalMilliseconds >= InactivityReconnectMs &&
+                        (DateTime.UtcNow - lastReconnectAttemptUtc).TotalMilliseconds >= ReconnectIntervalMs)
+                    {
+                        lastReconnectAttemptUtc = DateTime.UtcNow;
+                        System.Diagnostics.Debug.WriteLine("ZLG USB-CAN INACTIVE, forcing reopen...");
+                        CloseCan();
+                        Thread.Sleep(50);
+                        continue;
+                    }
+
                     int count = VCI_Receive(
                         DEVICE_TYPE,
                         DEVICE_INDEX,
@@ -153,8 +227,18 @@ namespace AgOpenGPS
                         100,
                         100);
 
+                    if (count < 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine("ZLG USB-CAN DISCONNECTED, trying to reconnect...");
+                        CloseCan();
+                        Thread.Sleep(50);
+                        continue;
+                    }
+
                     if (count > 0)
                     {
+                        hadFramesOnCurrentSession = true;
+                        lastFrameUtc = DateTime.UtcNow;
                         for (int i = 0; i < count; i++)
                         {
                             IntPtr ptr = IntPtr.Add(rxBuffer, i * objSize);
@@ -175,18 +259,14 @@ namespace AgOpenGPS
                             byte[] data = new byte[len];
                             Array.Copy(frame.Data, data, len);
 
-                            // ===== FILTER RADAR ONLY =====
-                            if (frame.ID == 0x61A || frame.ID == 0x61B)
-                            {
-                                radar.ProcessFrame(frame.ID, data);
-                            }
-                        }
-                        if (radar.FrameComplete)
-                        {
-                            var objs = radar.GetCRadarObjects();
-                            cradar.Update(objs);
+                            bool isExtended = frame.ExternFlag == 1;
 
-                            radar.ResetFrame();
+                            // ===== OPTICAL GRAIN SENSOR =====
+                            if (grainSensor.ProcessFrame(frame.ID, isExtended, data))
+                            {
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"GRAIN CAN: fill={grainSensor.Fill255} freq={grainSensor.FrequencyHz:F1}Hz flags=0x{grainSensor.Flags:X2}");
+                            }
                         }
                     }
 
@@ -196,6 +276,7 @@ namespace AgOpenGPS
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("USB-CAN RX ERROR: " + ex.Message);
+                CloseCan();
             }
         }
     }

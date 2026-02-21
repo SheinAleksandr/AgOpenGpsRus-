@@ -1240,7 +1240,7 @@ namespace AgOpenGPS
             Form form = new FormFieldData(this);
             form.Show(this);
 
-            form.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
+            form.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset - 120;
             if (isPanelBottomHidden)
                 form.Left = this.Left + 5;
             else

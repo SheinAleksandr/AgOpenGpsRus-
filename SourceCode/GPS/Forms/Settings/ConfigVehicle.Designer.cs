@@ -80,9 +80,6 @@ namespace AgOpenGPS
             //negative is to the right
             nudAntennaOffset.Value = (int)(Math.Abs(Properties.Settings.Default.setVehicle_antennaOffset) * mf.m2InchOrCm);
 
-            nudRadarOffset.Value =
-                (decimal)(Properties.Settings.Default.setVehicle_radarOffsetY * 100.0); // м → см
-
             rbtnAntennaLeft.Checked = false;
             rbtnAntennaRight.Checked = false;
             rbtnAntennaCenter.Checked = false;
@@ -170,22 +167,6 @@ namespace AgOpenGPS
             {
                 Properties.Settings.Default.setVehicle_antennaHeight = (double)nudAntennaHeight.Value * mf.inchOrCm2m;
                 mf.vehicle.VehicleConfig.AntennaHeight = Properties.Settings.Default.setVehicle_antennaHeight;
-            }
-        }
-
-        private void nudRadarOffset_Click(object sender, EventArgs e)
-        {
-            if (((NudlessNumericUpDown)sender).ShowKeypad(this))
-            {
-                double offsetMeters = (double)nudRadarOffset.Value * 0.01; // см → м
-
-                Properties.Settings.Default.setVehicle_radarOffsetY = offsetMeters;
-                Properties.Settings.Default.Save();
-
-                if (mf.usbCan != null)
-                {
-                    mf.usbCan.radar.RadarOffsetY = offsetMeters;
-                }
             }
         }
 
