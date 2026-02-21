@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace AgOpenGPS
 {
@@ -16,10 +17,19 @@ namespace AgOpenGPS
         public float TonMs { get; private set; }
         public float PeriodMs { get; private set; }
         public DateTime LastUpdateUtc { get; private set; } = DateTime.MinValue;
+
         private bool _yieldInit;
         private double _yieldEma;
         private const double YieldEmaAlphaSlow = 0.25;
         private const double YieldEmaAlphaFast = 0.65;
+
+        private readonly Queue<FlowSample> _flowSamples = new Queue<FlowSample>(64);
+
+        private struct FlowSample
+        {
+            public DateTime TimeUtc;
+            public double FlowProxy;
+        }
 
         public bool HasRecentData(int timeoutMs = 500)
         {
@@ -44,7 +54,26 @@ namespace AgOpenGPS
             PeriodMs = perMs10 * 0.1f;
 
             LastUpdateUtc = DateTime.UtcNow;
+
+            // Cache raw flow on CAN cadence; calculations then use 1-second moving average.
+            double flowProxy = Math.Max(0.0, FrequencyHz) * (Fill255 / 255.0);
+            _flowSamples.Enqueue(new FlowSample
+            {
+                TimeUtc = LastUpdateUtc,
+                FlowProxy = flowProxy
+            });
+            TrimFlowSamples(3.0);
+
             return true;
+        }
+
+        private void TrimFlowSamples(double keepSeconds)
+        {
+            DateTime minTime = DateTime.UtcNow - TimeSpan.FromSeconds(Math.Max(0.1, keepSeconds));
+            while (_flowSamples.Count > 0 && _flowSamples.Peek().TimeUtc < minTime)
+            {
+                _flowSamples.Dequeue();
+            }
         }
 
         /// <summary>
@@ -62,6 +91,39 @@ namespace AgOpenGPS
         }
 
         /// <summary>
+        /// Returns average sensor flow proxy for recent window, seconds.
+        /// </summary>
+        public bool TryGetFlowProxyAvg(double windowSec, out double avgFlowProxy)
+        {
+            avgFlowProxy = 0;
+            if (!HasRecentData())
+                return false;
+
+            double win = Math.Max(0.1, windowSec);
+            TrimFlowSamples(Math.Max(3.0, win + 0.5));
+            if (_flowSamples.Count == 0)
+                return false;
+
+            DateTime minTime = DateTime.UtcNow - TimeSpan.FromSeconds(win);
+            double sum = 0;
+            int n = 0;
+            foreach (FlowSample s in _flowSamples)
+            {
+                if (s.TimeUtc >= minTime)
+                {
+                    sum += s.FlowProxy;
+                    n++;
+                }
+            }
+
+            if (n <= 0)
+                return false;
+
+            avgFlowProxy = sum / n;
+            return true;
+        }
+
+        /// <summary>
         /// Returns flow/area proxy before normalization.
         /// Inputs: speed in km/h, tool width in meters.
         /// </summary>
@@ -73,7 +135,8 @@ namespace AgOpenGPS
         {
             yieldProxy = 0;
 
-            if (!TryGetFlowProxy(out double flowProxy))
+            // Use 1-second averaging to stabilize status and map coloring.
+            if (!TryGetFlowProxyAvg(1.0, out double flowProxy))
                 return false;
 
             double speedMps = Math.Abs(speedKmh) / 3.6;
