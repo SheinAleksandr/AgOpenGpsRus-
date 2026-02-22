@@ -79,9 +79,12 @@ namespace AgOpenGPS
         volatile bool canOnline;
         DateTime lastReconnectAttemptUtc = DateTime.MinValue;
         DateTime lastFrameUtc = DateTime.MinValue;
+        DateTime lastImuFrameUtc = DateTime.MinValue;
         bool hadFramesOnCurrentSession;
+        bool imuTimedOut = true;
         const int ReconnectIntervalMs = 1000;
         const int InactivityReconnectMs = 2500;
+        const int DefaultImuTimeoutMs = 250;
         readonly object canLock = new object();
 
         IntPtr rxBuffer;
@@ -89,6 +92,7 @@ namespace AgOpenGPS
 
         public uint ImuCanId { get; set; } = DefaultImuCanId;
         public bool ImuUseExtendedId { get; set; } = true;
+        public int ImuTimeoutMs { get; set; } = DefaultImuTimeoutMs;
 
         public UsbCanZlg(CAHRS ahrsState = null)
         {
@@ -105,12 +109,25 @@ namespace AgOpenGPS
             return (short)(data[index] | (data[index + 1] << 8));
         }
 
+        void SetNoImu()
+        {
+            if (ahrs == null) return;
+            ahrs.imuHeading = 99999;
+            ahrs.imuRoll = 88888;
+            ahrs.imuPitch = 0;
+            ahrs.imuYawRate = 0;
+            ahrs.angVel = 0;
+        }
+
         void ApplyImuFrame(uint canId, bool isExtended, byte[] data)
         {
             if (ahrs == null) return;
             if (data == null || data.Length < 8) return;
             if (isExtended != ImuUseExtendedId) return;
             if (canId != ImuCanId) return;
+
+            lastImuFrameUtc = DateTime.UtcNow;
+            imuTimedOut = false;
 
             ushort headingX10 = U16LE(data, 0);
             short rollX10 = I16LE(data, 2);
@@ -119,11 +136,7 @@ namespace AgOpenGPS
 
             if (headingX10 == ushort.MaxValue)
             {
-                ahrs.imuHeading = 99999;
-                ahrs.imuRoll = 88888;
-                ahrs.imuPitch = 0;
-                ahrs.imuYawRate = 0;
-                ahrs.angVel = 0;
+                SetNoImu();
                 return;
             }
 
@@ -206,6 +219,9 @@ namespace AgOpenGPS
         {
             objSize = Marshal.SizeOf<VCI_CAN_OBJ>();
             rxBuffer = Marshal.AllocHGlobal(objSize * 100);
+            imuTimedOut = true;
+            lastImuFrameUtc = DateTime.MinValue;
+            SetNoImu();
 
             bool startedNow = TryOpenAndStartCan();
             if (!startedNow)
@@ -324,6 +340,14 @@ namespace AgOpenGPS
 
                             ApplyImuFrame(frame.ID, isExtended, data);
                         }
+                    }
+
+                    if (!imuTimedOut &&
+                        lastImuFrameUtc != DateTime.MinValue &&
+                        (DateTime.UtcNow - lastImuFrameUtc).TotalMilliseconds >= ImuTimeoutMs)
+                    {
+                        SetNoImu();
+                        imuTimedOut = true;
                     }
 
                     Thread.Sleep(5);
