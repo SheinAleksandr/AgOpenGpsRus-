@@ -87,7 +87,6 @@ namespace AgOpenGPS
         IntPtr rxBuffer;
         int objSize;
 
-        public GrainCanSensor grainSensor = new GrainCanSensor(); // оптический датчик
         public uint ImuCanId { get; set; } = DefaultImuCanId;
         public bool ImuUseExtendedId { get; set; } = true;
 
@@ -322,13 +321,6 @@ namespace AgOpenGPS
                             Array.Copy(frame.Data, data, len);
 
                             bool isExtended = frame.ExternFlag == 1;
-
-                            // ===== OPTICAL GRAIN SENSOR =====
-                            if (grainSensor.ProcessFrame(frame.ID, isExtended, data))
-                            {
-                                System.Diagnostics.Debug.WriteLine(
-                                    $"GRAIN CAN: fill={grainSensor.Fill255} freq={grainSensor.FrequencyHz:F1}Hz flags=0x{grainSensor.Flags:X2}");
-                            }
 
                             ApplyImuFrame(frame.ID, isExtended, data);
                         }
