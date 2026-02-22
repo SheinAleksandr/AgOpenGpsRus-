@@ -27,6 +27,7 @@ namespace AgOpenGPS
     //the main form object
     public partial class FormGPS : Form
     {
+        public UsbCanZlg usbCan;
         public ApplicationCore AppCore { get; }
 
         public ApplicationModel AppModel => AppCore.AppModel;
@@ -533,6 +534,10 @@ namespace AgOpenGPS
             }
             //Init AgShareClient
             agShareClient = new AgShareClient(Settings.Default.AgShareServer, Settings.Default.AgShareApiKey);
+            //zlg
+            usbCan = new UsbCanZlg(ahrs);
+            usbCan.Start();
+
         }
 
         #region Shutdown Handling
@@ -779,6 +784,13 @@ namespace AgOpenGPS
                     loopBackSocket.Shutdown(SocketShutdown.Both);
                     loopBackSocket.Close();
                 }
+                catch { }
+            }
+
+            // Stop USB-CAN thread/device so adapter is released on app exit.
+            if (usbCan != null)
+            {
+                try { usbCan.Stop(); }
                 catch { }
             }
 
