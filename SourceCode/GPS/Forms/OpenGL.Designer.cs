@@ -1187,21 +1187,36 @@ namespace AgOpenGPS
                     section[j].mappingOnTimer = (int)(tool.lookAheadOnSetting * (gpsHz) - 1);
                 }
 
+                int yieldTransportDelayTicks = 0;
+                if (vehicle.VehicleConfig.Type == VehicleType.Harvester)
+                {
+                    double dSec = Math.Max(0.0, Settings.Default.setYieldMap_transportDelaySec);
+                    // On stop do not extend mapping tail with grain transport delay.
+                    double speedKmhAbs = Math.Abs(avgSpeed);
+                    if (dSec > 0.001 && gpsHz > 0.1 && speedKmhAbs > 0.3)
+                    {
+                        yieldTransportDelayTicks = (int)Math.Ceiling(dSec * gpsHz);
+                    }
+                }
+
                 if (tool.lookAheadOffSetting > 0)
                 {
                     if (section[j].sectionOffRequest && section[j].isMappingOn && section[j].mappingOffTimer == 0)
                     {
-                        section[j].mappingOffTimer = (int)(tool.lookAheadOffSetting * (gpsHz) + 4);
+                        section[j].mappingOffTimer = (int)(tool.lookAheadOffSetting * (gpsHz) + 4) + yieldTransportDelayTicks;
                     }
                 }
                 else if (tool.turnOffDelay > 0)
                 {
                     if (section[j].sectionOffRequest && section[j].isMappingOn && section[j].mappingOffTimer == 0)
-                        section[j].mappingOffTimer = (int)(tool.turnOffDelay * gpsHz);
+                        section[j].mappingOffTimer = (int)(tool.turnOffDelay * gpsHz) + yieldTransportDelayTicks;
                 }
                 else
                 {
-                    section[j].mappingOffTimer = 0;
+                    if (section[j].sectionOffRequest && section[j].isMappingOn && section[j].mappingOffTimer == 0)
+                        section[j].mappingOffTimer = yieldTransportDelayTicks;
+                    else if (yieldTransportDelayTicks <= 0)
+                        section[j].mappingOffTimer = 0;
                 }
 
                 //MAPPING - Not the making of triangle patches - only status - on or off

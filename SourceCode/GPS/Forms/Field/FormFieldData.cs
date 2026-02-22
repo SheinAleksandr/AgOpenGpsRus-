@@ -5,6 +5,7 @@ using AgOpenGPS.Core.Translations;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -28,6 +29,7 @@ namespace AgOpenGPS
         private readonly Button btnSetYieldScaleK = new Button();
         private readonly Button btnSelectCrop = new Button();
         private readonly Button btnSetDelay = new Button();
+        private readonly Button btnRawLogToggle = new Button();
 
         public FormFieldData(Form callingForm)
         {
@@ -98,12 +100,22 @@ namespace AgOpenGPS
             btnSetDelay.Text = "Delay";
             btnSetDelay.Click += BtnSetDelay_Click;
 
+            btnRawLogToggle.Font = new Font("Tahoma", 8.25F, FontStyle.Bold, GraphicsUnit.Point, ((byte)(0)));
+            btnRawLogToggle.ForeColor = Color.Black;
+            btnRawLogToggle.BackColor = Color.Gainsboro;
+            btnRawLogToggle.FlatStyle = FlatStyle.Flat;
+            btnRawLogToggle.Location = new Point(10, 686);
+            btnRawLogToggle.Size = new Size(GrainButtonWidth, GrainButtonHeight);
+            btnRawLogToggle.Text = "RAW log OFF";
+            btnRawLogToggle.Click += BtnRawLogToggle_Click;
+
             Controls.Add(labelGrain);
             Controls.Add(lblGrainData);
             Controls.Add(btnSetEmptyBaseline);
             Controls.Add(btnSetYieldScaleK);
             Controls.Add(btnSelectCrop);
             Controls.Add(btnSetDelay);
+            Controls.Add(btnRawLogToggle);
 
         }
         private void FormFieldData_Load(object sender, EventArgs e)
@@ -205,19 +217,23 @@ namespace AgOpenGPS
                 else if (almostEmpty) stateText = "Низкий поток";
                 else stateText = "Норма";
 
+                labelGrain.Text = $"Grain CAN: {stateText}";
+
                 lblGrainData.Text =
                     $"Fill {gs.Fill255} ({fillPct:N0}%)  Freq {gs.FrequencyHz:N1} Hz{Environment.NewLine}" +
-                    $"Yield {chaText} ц/га  K {kText}  D {dText}s{Environment.NewLine}" +
-                    $"{stateText}";
+                    $"Ton {gs.TonMs:N1} ms  Per {gs.PeriodMs:N1} ms{Environment.NewLine}" +
+                    $"Yield {chaText} ц/га  K {kText}  D {dText}s";
             }
             else
             {
+                labelGrain.Text = "Grain CAN: Нет данных";
                 lblGrainData.Text = "No CAN grain data";
             }
 
             btnSetYieldScaleK.Text = $"K = {Properties.Settings.Default.setYieldMap_scaleK:N2}";
             btnSelectCrop.Text = $"{Properties.Settings.Default.setYieldMap_cropName} Max {Properties.Settings.Default.setYieldMap_colorMaxCha:N0}";
             btnSetDelay.Text = $"Delay = {Properties.Settings.Default.setYieldMap_transportDelaySec:N1}s";
+            btnRawLogToggle.Text = (mf?.usbCan != null && mf.usbCan.GrainRawLogEnabled) ? "RAW log ON" : "RAW log OFF";
         }
 
         private async void BtnSetEmptyBaseline_Click(object sender, EventArgs e)
@@ -335,6 +351,21 @@ namespace AgOpenGPS
                 Properties.Settings.Default.Save();
                 timer1_Tick(this, EventArgs.Empty);
             }
+        }
+
+        private void BtnRawLogToggle_Click(object sender, EventArgs e)
+        {
+            if (mf?.usbCan == null) return;
+            if (!mf.isJobStarted)
+            {
+                btnRawLogToggle.Text = "Open field first";
+                return;
+            }
+
+            bool enable = !mf.usbCan.GrainRawLogEnabled;
+            string fieldDir = Path.Combine(RegistrySettings.fieldsDirectory, mf.currentFieldDirectory);
+            mf.usbCan.SetGrainRawLog(enable, fieldDir);
+            timer1_Tick(this, EventArgs.Empty);
         }
         private void btnTripReset_Click(object sender, EventArgs e)
         {

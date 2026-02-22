@@ -672,6 +672,18 @@ namespace AgOpenGPS
                 }
             }
 
+            try
+            {
+                if (YieldGeoJsonLogger.TryBuildFeatureCollection(GetFieldDir(false), out string geoJsonPath))
+                {
+                    Log.EventWriter("Yield log finalized: " + geoJsonPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.EventWriter("WARNING: Yield GeoJSON finalize failed: " + ex.Message);
+            }
+
             Log.EventWriter("** Field closed **   " + currentFieldDirectory + "   " +
                 DateTime.Now.ToString("f", CultureInfo.InvariantCulture));
 
@@ -1239,12 +1251,10 @@ namespace AgOpenGPS
 
             Form form = new FormFieldData(this);
             form.Show(this);
-
-            form.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset - 120;
-            if (isPanelBottomHidden)
-                form.Left = this.Left + 5;
-            else
-                form.Left = this.Left + GPSDataWindowLeft + 5;
+            System.Drawing.Rectangle wa = Screen.FromRectangle(this.Bounds).WorkingArea;
+            int preferredLeft = isPanelBottomHidden ? this.Left + 5 : this.Left + GPSDataWindowLeft + 5;
+            int preferredTop = this.Top + 38;
+            PositionWindowClamped(form, preferredLeft, preferredTop, wa);
 
 
             Form ff = Application.OpenForms["FormGPS"];
@@ -1275,12 +1285,10 @@ namespace AgOpenGPS
 
             Form form = new FormGPSData(this);
             form.Show(this);
-
-            form.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
-            if (isPanelBottomHidden)
-                form.Left = this.Left + 5;
-            else
-                form.Left = this.Left + GPSDataWindowLeft + 5;
+            System.Drawing.Rectangle wa = Screen.FromRectangle(this.Bounds).WorkingArea;
+            int preferredLeft = isPanelBottomHidden ? this.Left + 5 : this.Left + GPSDataWindowLeft + 5;
+            int preferredTop = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
+            PositionWindowClamped(form, preferredLeft, preferredTop, wa);
 
             Form ff = Application.OpenForms["FormGPS"];
             ff.Focus();

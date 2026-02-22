@@ -320,6 +320,9 @@ namespace AgOpenGPS
                 {
                     if (trackMethodPanelCounter-- < 1) flp1.Visible = false;
                 }
+
+                RepositionUtilityWindows();
+                TryAppendYieldGeoJsonlSample();
             }
 
             //every half of a second update all status  ////////////////    0.5  0.5   0.5    0.5    /////////////////
@@ -1473,6 +1476,54 @@ namespace AgOpenGPS
             sentenceCounter = 300;
             oglMain.MakeCurrent();
             oglMain.Refresh();
+        }
+
+        private bool HasAnyMappingSectionOn()
+        {
+            if (section == null) return false;
+            for (int i = 0; i < section.Length; i++)
+            {
+                if (section[i] != null && section[i].isMappingOn)
+                    return true;
+            }
+            return false;
+        }
+
+        private void TryAppendYieldGeoJsonlSample()
+        {
+            if (!isJobStarted || usbCan == null || usbCan.grainSensor == null)
+                return;
+
+            if (!HasAnyMappingSectionOn())
+                return;
+
+            if (!usbCan.grainSensor.TryGetYieldCentnerPerHa(
+                avgSpeed,
+                tool.width,
+                out double yieldCha,
+                Settings.Default.setYieldMap_emptyBaseline,
+                Settings.Default.setYieldMap_scaleK))
+            {
+                return;
+            }
+
+            Wgs84 latLon = AppModel.CurrentLatLon;
+            double headingDeg = glm.toDegrees(fixHeading);
+            while (headingDeg < 0.0) headingDeg += 360.0;
+            while (headingDeg >= 360.0) headingDeg -= 360.0;
+
+            YieldGeoJsonLogger.AppendFeatureLine(
+                GetFieldDir(true),
+                DateTime.UtcNow,
+                latLon.Latitude,
+                latLon.Longitude,
+                avgSpeed,
+                yieldCha,
+                tool.width,
+                headingDeg,
+                Settings.Default.setYieldMap_cropName,
+                Settings.Default.setYieldMap_scaleK,
+                Settings.Default.setYieldMap_transportDelaySec);
         }
 
         #region Properties // ---------------------------------------------------------------------

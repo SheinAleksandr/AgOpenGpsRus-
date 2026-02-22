@@ -303,6 +303,7 @@ namespace AgOpenGPS
         {
             //winform initialization
             InitializeComponent();
+            this.SizeChanged += FormGPS_SizeChanged;
 
             InitializeLanguages();
 
@@ -831,51 +832,67 @@ namespace AgOpenGPS
         {
             PanelsAndOGLSize();
             if (isGPSPositionInitialized) SetZoom();
-
-            Form f = Application.OpenForms["FormGPSData"];
-            if (f != null)
-            {
-                f.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
-                f.Left = this.Left + GPSDataWindowLeft;
-            }
-
-            f = Application.OpenForms["FormFieldData"];
-            if (f != null)
-            {
-                f.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
-                f.Left = this.Left + GPSDataWindowLeft;
-            }
-
-            f = Application.OpenForms["FormPan"];
-            if (f != null)
-            {
-                f.Top = this.Height / 3 + this.Top;
-                f.Left = this.Width - 400 + this.Left;
-            }
+            RepositionUtilityWindows();
         }
 
         private void FormGPS_Move(object sender, EventArgs e)
         {
+            RepositionUtilityWindows();
+        }
+
+        private void FormGPS_SizeChanged(object sender, EventArgs e)
+        {
+            RepositionUtilityWindows();
+        }
+
+        private void RepositionUtilityWindows()
+        {
+            Rectangle wa = Screen.FromRectangle(this.Bounds).WorkingArea;
+            int statsTop = this.Top + 38;
+
             Form f = Application.OpenForms["FormGPSData"];
             if (f != null)
             {
-                f.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
-                f.Left = this.Left + GPSDataWindowLeft;
+                PositionWindowClamped(
+                    f,
+                    this.Left + GPSDataWindowLeft,
+                    this.Top + this.Height / 2 - GPSDataWindowTopOffset,
+                    wa);
             }
 
             f = Application.OpenForms["FormFieldData"];
             if (f != null)
             {
-                f.Top = this.Top + this.Height / 2 - GPSDataWindowTopOffset;
-                f.Left = this.Left + GPSDataWindowLeft;
+                PositionWindowClamped(
+                    f,
+                    this.Left + GPSDataWindowLeft,
+                    statsTop,
+                    wa);
             }
 
             f = Application.OpenForms["FormPan"];
             if (f != null)
             {
-                f.Top = this.Top + 75;
-                f.Left = this.Left + this.Width - 380;
+                PositionWindowClamped(
+                    f,
+                    this.Left + this.Width - 380,
+                    this.Top + 75,
+                    wa);
             }
+        }
+
+        private static void PositionWindowClamped(Form form, int preferredLeft, int preferredTop, Rectangle workArea)
+        {
+            if (form == null) return;
+
+            int maxLeft = Math.Max(workArea.Left, workArea.Right - form.Width);
+            int maxTop = Math.Max(workArea.Top, workArea.Bottom - form.Height);
+
+            int left = Math.Max(workArea.Left, Math.Min(preferredLeft, maxLeft));
+            int top = Math.Max(workArea.Top, Math.Min(preferredTop, maxTop));
+
+            form.Left = left;
+            form.Top = top;
         }
 
         //request a new job
@@ -990,6 +1007,8 @@ namespace AgOpenGPS
         //close the current job
         public void JobClose()
         {
+            usbCan?.SetGrainRawLog(false, null);
+
             recPath.resumeState = 0;
             btnResumePath.Image = Properties.Resources.pathResumeStart;
             recPath.currentPositonIndex = 0;

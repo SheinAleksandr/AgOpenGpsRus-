@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -80,11 +82,97 @@ namespace AgOpenGPS
         const int ReconnectIntervalMs = 1000;
         const int InactivityReconnectMs = 2500;
         readonly object canLock = new object();
+        readonly object rawLogLock = new object();
 
         IntPtr rxBuffer;
         int objSize;
+        StreamWriter rawLogWriter;
 
         public GrainCanSensor grainSensor = new GrainCanSensor(); // оптический датчик
+        public bool GrainRawLogEnabled { get; private set; }
+        public string GrainRawLogPath { get; private set; } = string.Empty;
+
+        public void SetGrainRawLog(bool enabled, string fieldDirectory)
+        {
+            lock (rawLogLock)
+            {
+                if (!enabled)
+                {
+                    GrainRawLogEnabled = false;
+                    GrainRawLogPath = string.Empty;
+                    CloseRawLogWriterNoLock();
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(fieldDirectory))
+                    return;
+
+                Directory.CreateDirectory(fieldDirectory);
+                GrainRawLogPath = Path.Combine(fieldDirectory, "YieldSensorRawLog.csv");
+
+                bool writeHeader = !File.Exists(GrainRawLogPath) || new FileInfo(GrainRawLogPath).Length == 0;
+                CloseRawLogWriterNoLock();
+                rawLogWriter = new StreamWriter(GrainRawLogPath, true);
+                rawLogWriter.AutoFlush = true;
+                if (writeHeader)
+                {
+                    rawLogWriter.WriteLine("time_utc,can_id,is_extended,dlc,freq_x10,fill255,ton_ms10,per_ms10,freq_hz,fill,ton_ms,per_ms");
+                }
+
+                GrainRawLogEnabled = true;
+            }
+        }
+
+        private void CloseRawLogWriterNoLock()
+        {
+            try
+            {
+                rawLogWriter?.Flush();
+                rawLogWriter?.Dispose();
+            }
+            catch { }
+            rawLogWriter = null;
+        }
+
+        private void AppendRawGrainLogFrame(uint canId, bool isExtended, int dlc, byte[] data)
+        {
+            lock (rawLogLock)
+            {
+                if (!GrainRawLogEnabled || rawLogWriter == null)
+                    return;
+
+                if (!isExtended || canId != GrainCanSensor.ID_DATA || data == null || data.Length < 8)
+                    return;
+
+                ushort freqX10 = (ushort)(data[0] | (data[1] << 8));
+                byte fill255 = data[2];
+                ushort tonMs10 = (ushort)(data[4] | (data[5] << 8));
+                ushort perMs10 = (ushort)(data[6] | (data[7] << 8));
+
+                double freqHz = freqX10 / 10.0;
+                double fill = fill255 / 255.0;
+                double tonMs = tonMs10 * 0.1;
+                double perMs = perMs10 * 0.1;
+
+                DateTime nowUtc = DateTime.UtcNow;
+                CultureInfo ci = CultureInfo.InvariantCulture;
+                string line =
+                    nowUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", ci) + "," +
+                    "0x" + canId.ToString("X8", ci) + "," +
+                    (isExtended ? "1" : "0") + "," +
+                    dlc.ToString(ci) + "," +
+                    freqX10.ToString(ci) + "," +
+                    fill255.ToString(ci) + "," +
+                    tonMs10.ToString(ci) + "," +
+                    perMs10.ToString(ci) + "," +
+                    freqHz.ToString("F1", ci) + "," +
+                    fill.ToString("F4", ci) + "," +
+                    tonMs.ToString("F1", ci) + "," +
+                    perMs.ToString("F1", ci);
+
+                rawLogWriter.WriteLine(line);
+            }
+        }
 
         bool TryOpenAndStartCan()
         {
@@ -180,6 +268,12 @@ namespace AgOpenGPS
             }
 
             CloseCan();
+            lock (rawLogLock)
+            {
+                GrainRawLogEnabled = false;
+                GrainRawLogPath = string.Empty;
+                CloseRawLogWriterNoLock();
+            }
 
             System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STOPPED");
         }
@@ -260,6 +354,7 @@ namespace AgOpenGPS
                             Array.Copy(frame.Data, data, len);
 
                             bool isExtended = frame.ExternFlag == 1;
+                            AppendRawGrainLogFrame(frame.ID, isExtended, len, data);
 
                             // ===== OPTICAL GRAIN SENSOR =====
                             if (grainSensor.ProcessFrame(frame.ID, isExtended, data))
@@ -281,3 +376,5 @@ namespace AgOpenGPS
         }
     }
 }
+
+
