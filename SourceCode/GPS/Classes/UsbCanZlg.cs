@@ -93,6 +93,7 @@ namespace AgOpenGPS
         public uint ImuCanId { get; set; } = DefaultImuCanId;
         public bool ImuUseExtendedId { get; set; } = true;
         public int ImuTimeoutMs { get; set; } = DefaultImuTimeoutMs;
+        public bool IsImuActive => !imuTimedOut && lastImuFrameUtc != DateTime.MinValue;
 
         public UsbCanZlg(CAHRS ahrsState = null)
         {

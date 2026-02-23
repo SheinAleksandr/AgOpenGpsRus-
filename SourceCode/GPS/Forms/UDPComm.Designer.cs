@@ -78,6 +78,9 @@ namespace AgOpenGPS
                                 pn.fix.northing = fixCoord.Northing;
                                 pn.fix.easting = fixCoord.Easting;
 
+                                // Prefer external IMU whenever USB-CAN is present to avoid source switching.
+                                bool useExternalImu = (usbCan != null);
+
                                 //From dual antenna heading sentences
                                 float temp = BitConverter.ToSingle(data, 21);
                                 if (temp != float.MaxValue)
@@ -86,7 +89,7 @@ namespace AgOpenGPS
                                     if (pn.headingTrueDual >= 360) pn.headingTrueDual -= 360;
                                     else if (pn.headingTrueDual < 0) pn.headingTrueDual += 360;
 
-                                    if (ahrs.isDualAsIMU) ahrs.imuHeading = pn.headingTrueDual;
+                                    if (!useExternalImu && ahrs.isDualAsIMU) ahrs.imuHeading = pn.headingTrueDual;
                                 }
 
                                 //from single antenna sentences (VTG,RMC)
@@ -103,10 +106,13 @@ namespace AgOpenGPS
                                 temp = BitConverter.ToSingle(data, 33);
                                 if (temp != float.MaxValue)
                                 {
-                                    if (ahrs.isRollInvert) temp *= -1;
-                                    ahrs.imuRoll = temp - ahrs.rollZero;
+                                    if (!useExternalImu)
+                                    {
+                                        if (ahrs.isRollInvert) temp *= -1;
+                                        ahrs.imuRoll = temp - ahrs.rollZero;
+                                    }
                                 }
-                                if (temp == float.MinValue)
+                                if (!useExternalImu && temp == float.MinValue)
                                     ahrs.imuRoll = 0;
 
                                 //altitude in meters
@@ -130,33 +136,36 @@ namespace AgOpenGPS
                                 if (age != ushort.MaxValue)
                                     pn.age = age * 0.01;
 
-                                ushort imuHead = BitConverter.ToUInt16(data, 48);
-                                if (imuHead != ushort.MaxValue)
+                                if (!useExternalImu)
                                 {
-                                    ahrs.imuHeading = imuHead;
-                                    ahrs.imuHeading *= 0.1;
-                                }
+                                    ushort imuHead = BitConverter.ToUInt16(data, 48);
+                                    if (imuHead != ushort.MaxValue)
+                                    {
+                                        ahrs.imuHeading = imuHead;
+                                        ahrs.imuHeading *= 0.1;
+                                    }
 
-                                short imuRol = BitConverter.ToInt16(data, 50);
-                                if (imuRol != short.MaxValue)
-                                {
-                                    double rollK = imuRol;
-                                    if (ahrs.isRollInvert) rollK *= -0.1;
-                                    else rollK *= 0.1;
-                                    rollK -= ahrs.rollZero;
-                                    ahrs.imuRoll = ahrs.imuRoll * ahrs.rollFilter + rollK * (1 - ahrs.rollFilter);
-                                }
+                                    short imuRol = BitConverter.ToInt16(data, 50);
+                                    if (imuRol != short.MaxValue)
+                                    {
+                                        double rollK = imuRol;
+                                        if (ahrs.isRollInvert) rollK *= -0.1;
+                                        else rollK *= 0.1;
+                                        rollK -= ahrs.rollZero;
+                                        ahrs.imuRoll = ahrs.imuRoll * ahrs.rollFilter + rollK * (1 - ahrs.rollFilter);
+                                    }
 
-                                short imuPich = BitConverter.ToInt16(data, 52);
-                                if (imuPich != short.MaxValue)
-                                {
-                                    ahrs.imuPitch = imuPich;
-                                }
+                                    short imuPich = BitConverter.ToInt16(data, 52);
+                                    if (imuPich != short.MaxValue)
+                                    {
+                                        ahrs.imuPitch = imuPich;
+                                    }
 
-                                short imuYaw = BitConverter.ToInt16(data, 54);
-                                if (imuYaw != short.MaxValue)
-                                {
-                                    ahrs.imuYawRate = imuYaw;
+                                    short imuYaw = BitConverter.ToInt16(data, 54);
+                                    if (imuYaw != short.MaxValue)
+                                    {
+                                        ahrs.imuYawRate = imuYaw;
+                                    }
                                 }
 
                                 sentenceCounter = 0;
