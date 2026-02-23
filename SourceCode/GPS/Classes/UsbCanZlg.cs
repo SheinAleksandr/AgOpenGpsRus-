@@ -85,6 +85,7 @@ namespace AgOpenGPS
         const int ReconnectIntervalMs = 1000;
         const int InactivityReconnectMs = 2500;
         const int DefaultImuTimeoutMs = 250;
+        const int SteerSetting1_ImuUseYAxisBit = 1 << 3;
         readonly object canLock = new object();
 
         IntPtr rxBuffer;
@@ -118,6 +119,11 @@ namespace AgOpenGPS
             return (short)(data[index] | (data[index + 1] << 8));
         }
 
+        bool IsUseYAxisImu()
+        {
+            return (Properties.Settings.Default.setArdSteer_setting1 & SteerSetting1_ImuUseYAxisBit) != 0;
+        }
+
         void SetNoImu()
         {
             if (ahrs == null) return;
@@ -142,6 +148,13 @@ namespace AgOpenGPS
             short rollX10 = I16LE(data, 2);
             short pitchX10 = I16LE(data, 4);
             short yawRateX10 = I16LE(data, 6);
+
+            if (IsUseYAxisImu())
+            {
+                short tmp = rollX10;
+                rollX10 = pitchX10;
+                pitchX10 = tmp;
+            }
 
             if (headingX10 == ushort.MaxValue)
             {
