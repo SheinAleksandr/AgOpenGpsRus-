@@ -605,6 +605,7 @@ namespace AgOpenGPS
             gyd.sideHillCompFactor = Properties.Settings.Default.setAS_sideHillComp;
 
             ahrs = new CAHRS();
+            if (usbCan != null) usbCan.SetAhrs(ahrs);
 
             // invalidate curve/ab line to force recalculation in case dependent settings were chagned,
             // for example, change of tool offset or tool width

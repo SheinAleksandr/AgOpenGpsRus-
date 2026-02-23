@@ -6,7 +6,7 @@ namespace AgOpenGPS
 {
     public class UsbCanZlg
     {
-        readonly CAHRS ahrs;
+        CAHRS ahrs;
 
         // ===== ZLG constants =====
         const uint DEVICE_TYPE = 4;   // VCI_USBCAN1
@@ -97,7 +97,15 @@ namespace AgOpenGPS
 
         public UsbCanZlg(CAHRS ahrsState = null)
         {
+            SetAhrs(ahrsState);
+        }
+
+        public void SetAhrs(CAHRS ahrsState)
+        {
             ahrs = ahrsState;
+            imuTimedOut = true;
+            lastImuFrameUtc = DateTime.MinValue;
+            SetNoImu();
         }
 
         static ushort U16LE(byte[] data, int index)
