@@ -79,7 +79,7 @@ namespace AgOpenGPS
                                 pn.fix.easting = fixCoord.Easting;
 
                                 // Prefer external IMU whenever USB-CAN is present to avoid source switching.
-                                bool useExternalImu = (usbCan != null);
+                                bool useExternalImu = (usbCan != null) && usbCan.IsImuActive;
 
                                 //From dual antenna heading sentences
                                 float temp = BitConverter.ToSingle(data, 21);
