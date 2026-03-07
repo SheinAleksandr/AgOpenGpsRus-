@@ -1168,13 +1168,13 @@ USE AT OWN RISK.</value>
     <value>Use Selected</value>
   </data>
   <data name="gsUser1" xml:space="preserve">
-    <value>User 1</value>
+    <value>Таймер сброса мощности</value>
   </data>
   <data name="gsUser2" xml:space="preserve">
     <value>User 2</value>
   </data>
   <data name="gsUser3" xml:space="preserve">
-    <value>User 3</value>
+    <value>Kp мощности</value>
   </data>
   <data name="gsUser4" xml:space="preserve">
     <value>User 4</value>

@@ -6527,7 +6527,7 @@ namespace AgOpenGPS
             this.labelUser3.Name = "labelUser3";
             this.labelUser3.Size = new System.Drawing.Size(111, 16);
             this.labelUser3.TabIndex = 491;
-            this.labelUser3.Text = "User 3";
+            this.labelUser3.Text = "Kp мощности";
             // 
             // labelUser2
             // 
@@ -6545,11 +6545,11 @@ namespace AgOpenGPS
             this.labelUser1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.labelUser1.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelUser1.ForeColor = System.Drawing.Color.Black;
-            this.labelUser1.Location = new System.Drawing.Point(662, 56);
+            this.labelUser1.Location = new System.Drawing.Point(662, 36);
             this.labelUser1.Name = "labelUser1";
-            this.labelUser1.Size = new System.Drawing.Size(111, 16);
+            this.labelUser1.Size = new System.Drawing.Size(111, 36);
             this.labelUser1.TabIndex = 489;
-            this.labelUser1.Text = "User 1";
+            this.labelUser1.Text = "Таймер сброса мощности";
             // 
             // labelGroupHyd
             // 
@@ -8514,14 +8514,14 @@ namespace AgOpenGPS
             this.lblInchesCm.TabIndex = 303;
             this.lblInchesCm.Text = "Inches";
             // 
-            // lblSecTotalWidthMeters
+            // lblSecTotalWidth
             // 
             this.lblSecTotalWidth.AutoSize = true;
             this.lblSecTotalWidth.Font = new System.Drawing.Font("Tahoma", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSecTotalWidth.ForeColor = System.Drawing.Color.Black;
             this.lblSecTotalWidth.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.lblSecTotalWidth.Location = new System.Drawing.Point(632, 32);
-            this.lblSecTotalWidth.Name = "lblSecTotalWidthMeters";
+            this.lblSecTotalWidth.Name = "lblSecTotalWidth";
             this.lblSecTotalWidth.Size = new System.Drawing.Size(32, 25);
             this.lblSecTotalWidth.TabIndex = 302;
             this.lblSecTotalWidth.Text = "II";
