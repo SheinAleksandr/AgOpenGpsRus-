@@ -360,6 +360,10 @@ namespace AgOpenGPS
             this.pboxSendRelay = new System.Windows.Forms.PictureBox();
             this.btnSendRelayConfigPGN = new System.Windows.Forms.Button();
             this.tabAMachine = new System.Windows.Forms.TabPage();
+            this.labelPowerUp = new System.Windows.Forms.Label();
+            this.labelPowerDown = new System.Windows.Forms.Label();
+            this.nudPowerUp = new AgOpenGPS.NudlessNumericUpDown();
+            this.nudPowerDown = new AgOpenGPS.NudlessNumericUpDown();
             this.labelUser4 = new System.Windows.Forms.Label();
             this.labelUser3 = new System.Windows.Forms.Label();
             this.labelUser2 = new System.Windows.Forms.Label();
@@ -576,6 +580,8 @@ namespace AgOpenGPS
             this.tabRelay.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pboxSendRelay)).BeginInit();
             this.tabAMachine.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudPowerUp)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudPowerDown)).BeginInit();
             this.labelGroupHyd.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudHydLiftLookAhead)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox6)).BeginInit();
@@ -6484,6 +6490,10 @@ namespace AgOpenGPS
             // tabAMachine
             // 
             this.tabAMachine.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.tabAMachine.Controls.Add(this.labelPowerUp);
+            this.tabAMachine.Controls.Add(this.labelPowerDown);
+            this.tabAMachine.Controls.Add(this.nudPowerUp);
+            this.tabAMachine.Controls.Add(this.nudPowerDown);
             this.tabAMachine.Controls.Add(this.labelUser4);
             this.tabAMachine.Controls.Add(this.labelUser3);
             this.tabAMachine.Controls.Add(this.labelUser2);
@@ -6506,6 +6516,66 @@ namespace AgOpenGPS
             this.tabAMachine.Text = "aMach";
             this.tabAMachine.Enter += new System.EventHandler(this.tabAMachine_Enter);
             this.tabAMachine.Leave += new System.EventHandler(this.tabAMachine_Leave);
+            // 
+            // labelPowerUp
+            // 
+            this.labelPowerUp.AutoSize = true;
+            this.labelPowerUp.Location = new System.Drawing.Point(390, 488);
+            this.labelPowerUp.Name = "labelPowerUp";
+            this.labelPowerUp.Size = new System.Drawing.Size(76, 16);
+            this.labelPowerUp.TabIndex = 496;
+            this.labelPowerUp.Text = "Мощность+";
+            // 
+            // labelPowerDown
+            // 
+            this.labelPowerDown.AutoSize = true;
+            this.labelPowerDown.Location = new System.Drawing.Point(256, 488);
+            this.labelPowerDown.Name = "labelPowerDown";
+            this.labelPowerDown.Size = new System.Drawing.Size(73, 16);
+            this.labelPowerDown.TabIndex = 495;
+            this.labelPowerDown.Text = "Мощность-";
+            // 
+            // nudPowerUp
+            // 
+            this.nudPowerUp.Font = new System.Drawing.Font("Tahoma", 27.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.nudPowerUp.InterceptArrowKeys = false;
+            this.nudPowerUp.Location = new System.Drawing.Point(393, 508);
+            this.nudPowerUp.Maximum = new decimal(new int[] {
+            9,
+            0,
+            0,
+            0});
+            this.nudPowerUp.Name = "nudPowerUp";
+            this.nudPowerUp.Size = new System.Drawing.Size(110, 52);
+            this.nudPowerUp.TabIndex = 494;
+            this.nudPowerUp.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.nudPowerUp.Value = new decimal(new int[] {
+            0,
+            0,
+            0,
+            0});
+            this.nudPowerUp.Click += new System.EventHandler(this.nudPowerUp_Click);
+            // 
+            // nudPowerDown
+            // 
+            this.nudPowerDown.Font = new System.Drawing.Font("Tahoma", 27.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.nudPowerDown.InterceptArrowKeys = false;
+            this.nudPowerDown.Location = new System.Drawing.Point(256, 507);
+            this.nudPowerDown.Maximum = new decimal(new int[] {
+            9,
+            0,
+            0,
+            0});
+            this.nudPowerDown.Name = "nudPowerDown";
+            this.nudPowerDown.Size = new System.Drawing.Size(97, 52);
+            this.nudPowerDown.TabIndex = 493;
+            this.nudPowerDown.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.nudPowerDown.Value = new decimal(new int[] {
+            0,
+            0,
+            0,
+            0});
+            this.nudPowerDown.Click += new System.EventHandler(this.nudPowerDown_Click);
             // 
             // labelUser4
             // 
@@ -6910,7 +6980,7 @@ namespace AgOpenGPS
             this.cboxMachInvertRelays.Font = new System.Drawing.Font("Tahoma", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cboxMachInvertRelays.ForeColor = System.Drawing.SystemColors.ControlText;
             this.cboxMachInvertRelays.Image = global::AgOpenGPS.Properties.Resources.ConSt_InvertRelay;
-            this.cboxMachInvertRelays.Location = new System.Drawing.Point(116, 462);
+            this.cboxMachInvertRelays.Location = new System.Drawing.Point(30, 462);
             this.cboxMachInvertRelays.Name = "cboxMachInvertRelays";
             this.cboxMachInvertRelays.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.cboxMachInvertRelays.Size = new System.Drawing.Size(192, 98);
@@ -8725,6 +8795,9 @@ namespace AgOpenGPS
             this.tabRelay.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pboxSendRelay)).EndInit();
             this.tabAMachine.ResumeLayout(false);
+            this.tabAMachine.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudPowerUp)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudPowerDown)).EndInit();
             this.labelGroupHyd.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.nudHydLiftLookAhead)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox6)).EndInit();
@@ -9201,5 +9274,9 @@ namespace AgOpenGPS
         private System.Windows.Forms.CheckBox chkboxHeadlandDist;
         private Forms.Config.ConfigSummaryControl configSummaryControl;
         private Forms.Config.ConfigVehicleControl configVehicleControl;
+        private NudlessNumericUpDown nudPowerUp;
+        private NudlessNumericUpDown nudPowerDown;
+        private System.Windows.Forms.Label labelPowerUp;
+        private System.Windows.Forms.Label labelPowerDown;
     }
 }

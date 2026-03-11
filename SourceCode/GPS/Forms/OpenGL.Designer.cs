@@ -1752,7 +1752,15 @@ namespace AgOpenGPS
         {
             GL.Enable(EnableCap.Texture2D);
 
-            if (!yt.isYouTurnTriggered)
+            bool isUturnPgnActive = yt.isYouTurnTriggered;
+            if (bnd.isHeadlandOn)
+            {
+                double powerDown = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerDownDistance);
+                double powerUp = Math.Max(powerDown, Properties.Settings.Default.setUturnPgnPowerUpDistance);
+                isUturnPgnActive = bnd.IsPointInHydLiftWindow(toolPivotPos, powerDown, powerUp);
+            }
+
+            if (!isUturnPgnActive)
             {
                 if (distancePivotToTurnLine > 0 && !yt.isOutOfBounds && yt.youTurnPhase == 10) GL.Color3(0.3f, 0.95f, 0.3f);
                 else GL.Color3(0.97f, 0.635f, 0.4f);
@@ -1766,7 +1774,7 @@ namespace AgOpenGPS
                 p_239.pgn[p_239.uturn] = 1;
             }
 
-            Texture2D turnTexture = !yt.isYouTurnTriggered ? ScreenTextures.Turn : ScreenTextures.TurnCancel;
+            Texture2D turnTexture = !isUturnPgnActive ? ScreenTextures.Turn : ScreenTextures.TurnCancel;
             //int bottom = 90;
             int two3 = oglMain.Width / 5;
             XyCoord turnTextureCenter = new XyCoord(two3, 120);
@@ -1786,7 +1794,7 @@ namespace AgOpenGPS
 
             if (isMetric)
             {
-                if (!yt.isYouTurnTriggered)
+                if (!isUturnPgnActive)
                 {
                     font.DrawText(-40 + two3, 120, DistPivotM);
                 }
@@ -1797,7 +1805,7 @@ namespace AgOpenGPS
             }
             else
             {
-                if (!yt.isYouTurnTriggered)
+                if (!isUturnPgnActive)
                 {
                     font.DrawText(-40 + two3, 120, DistPivotFt);
                 }

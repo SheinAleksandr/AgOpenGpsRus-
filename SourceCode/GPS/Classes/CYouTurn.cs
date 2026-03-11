@@ -2977,17 +2977,49 @@ namespace AgOpenGPS
 
             GL.PointSize(mf.ABLine.lineWidth + 2);
 
+            if (!mf.bnd.isHeadlandOn)
+            {
+                if (isYouTurnTriggered)
+                    GL.Color3(0.95f, 0.5f, 0.95f);
+                else if (isOutOfBounds)
+                    GL.Color3(0.9495f, 0.395f, 0.325f);
+                else
+                    GL.Color3(0.395f, 0.925f, 0.30f);
+
+                GL.Begin(PrimitiveType.Points);
+                for (int i = 0; i < ytList.Count; i++)
+                {
+                    GL.Vertex3(ytList[i].easting, ytList[i].northing, 0);
+                }
+                GL.End();
+                return;
+            }
+
+            // Headland ON: show full path dimmed and active hydLift window bright.
+            GL.Begin(PrimitiveType.Points);
+            if (isOutOfBounds) GL.Color3(0.65f, 0.25f, 0.25f);
+            else GL.Color3(0.35f, 0.45f, 0.35f);
+            for (int i = 0; i < ytList.Count; i++)
+            {
+                GL.Vertex3(ytList[i].easting, ytList[i].northing, 0);
+            }
+            GL.End();
+
             if (isYouTurnTriggered)
                 GL.Color3(0.95f, 0.5f, 0.95f);
-            else if (isOutOfBounds)
-                GL.Color3(0.9495f, 0.395f, 0.325f);
             else
                 GL.Color3(0.395f, 0.925f, 0.30f);
+
+            double powerDown = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerDownDistance);
+            double powerUp = Math.Max(powerDown, Properties.Settings.Default.setUturnPgnPowerUpDistance);
 
             GL.Begin(PrimitiveType.Points);
             for (int i = 0; i < ytList.Count; i++)
             {
-                GL.Vertex3(ytList[i].easting, ytList[i].northing, 0);
+                if (mf.bnd.IsPointInHydLiftWindow(ytList[i], powerDown, powerUp))
+                {
+                    GL.Vertex3(ytList[i].easting, ytList[i].northing, 0);
+                }
             }
             GL.End();
 

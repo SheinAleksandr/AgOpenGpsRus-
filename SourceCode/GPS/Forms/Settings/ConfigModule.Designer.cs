@@ -59,6 +59,8 @@ namespace AgOpenGPS
             nudUser2.Value = Properties.Settings.Default.setArdMac_user2;
             nudUser3.Value = Properties.Settings.Default.setArdMac_user3;
             nudUser4.Value = Properties.Settings.Default.setArdMac_user4;
+            nudPowerDown.Value = Properties.Settings.Default.setUturnPgnPowerDownDistance;
+            nudPowerUp.Value = Properties.Settings.Default.setUturnPgnPowerUpDistance;
 
             btnSendMachinePGN.Focus();
 
@@ -124,6 +126,24 @@ namespace AgOpenGPS
                 pboxSendMachine.Visible = true;
             }
         }
+
+        private void nudPowerDown_Click(object sender, EventArgs e)
+        {
+            if (((NudlessNumericUpDown)sender).ShowKeypad(this))
+            {
+                Properties.Settings.Default.setUturnPgnPowerDownDistance = (int)nudPowerDown.Value;
+                pboxSendMachine.Visible = true;
+            }
+        }
+
+        private void nudPowerUp_Click(object sender, EventArgs e)
+        {
+            if (((NudlessNumericUpDown)sender).ShowKeypad(this))
+            {
+                Properties.Settings.Default.setUturnPgnPowerUpDistance = (int)nudPowerUp.Value;
+                pboxSendMachine.Visible = true;
+            }
+        }
         private void cboxIsHydOn_Click(object sender, EventArgs e)
         {
             if (cboxIsHydOn.Checked)
@@ -166,6 +186,8 @@ namespace AgOpenGPS
             Properties.Settings.Default.setArdMac_user2 = (byte)nudUser2.Value;
             Properties.Settings.Default.setArdMac_user3 = (byte)nudUser3.Value;
             Properties.Settings.Default.setArdMac_user4 = (byte)nudUser4.Value;
+            Properties.Settings.Default.setUturnPgnPowerDownDistance = (int)nudPowerDown.Value;
+            Properties.Settings.Default.setUturnPgnPowerUpDistance = (int)nudPowerUp.Value;
 
             Properties.Settings.Default.setVehicle_hydraulicLiftLookAhead = (double)nudHydLiftLookAhead.Value;
             mf.vehicle.hydLiftLookAheadTime = Properties.Settings.Default.setVehicle_hydraulicLiftLookAhead;

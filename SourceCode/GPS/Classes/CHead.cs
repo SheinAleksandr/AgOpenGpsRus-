@@ -112,6 +112,30 @@ namespace AgOpenGPS
             }
             return false;
         }
+
+        public bool IsPointInHydLiftWindow(vec3 pt, double beforeMeters, double afterMeters)
+        {
+            if (!isHeadlandOn || bndList.Count == 0 || bndList[0].hdLine.Count < 2) return false;
+
+            if (beforeMeters < 0) beforeMeters = 0;
+            if (afterMeters < 0) afterMeters = 0;
+
+            vec2? ahead = glm.RaycastToPolygon(pt, bndList[0].hdLine);
+
+            vec3 reversePt = new vec3(pt);
+            reversePt.heading += Math.PI;
+            if (reversePt.heading >= glm.twoPI) reversePt.heading -= glm.twoPI;
+            vec2? behind = glm.RaycastToPolygon(reversePt, bndList[0].hdLine);
+
+            bool nearBefore = ahead.HasValue && glm.Distance(pt.ToVec2(), ahead.Value) <= beforeMeters;
+            bool nearAfter = behind.HasValue && glm.Distance(pt.ToVec2(), behind.Value) <= afterMeters;
+
+            // In existing semantics points outside "head area" are in headland zone.
+            bool inHeadlandZone = !IsPointInsideHeadArea(pt.ToVec2());
+
+            return nearBefore || inHeadlandZone || nearAfter;
+        }
+
         public void CheckHeadlandProximity()
         {
             if (!isHeadlandOn || bndList.Count == 0 || bndList[0].hdLine.Count < 2)

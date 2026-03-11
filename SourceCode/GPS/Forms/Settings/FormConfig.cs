@@ -86,6 +86,8 @@ namespace AgOpenGPS
             nudUser2.Controls[0].Enabled = false;
             nudUser3.Controls[0].Enabled = false;
             nudUser4.Controls[0].Enabled = false;
+            nudPowerDown.Controls[0].Enabled = false;
+            nudPowerUp.Controls[0].Enabled = false;
 
             nudTramWidth.Controls[0].Enabled = false;
 
@@ -200,6 +202,8 @@ namespace AgOpenGPS
             labelUser2.Text = gStr.gsUser2;
             labelUser3.Text = gStr.gsUser3;
             labelUser4.Text = gStr.gsUser4;
+            labelPowerDown.Text = "мощность- (м)";
+            labelPowerUp.Text = "мощность+ (м)";
             labelHydLiftInvert.Text = gStr.gsInvertHydraulicRelays;
             labelSendSaveHydraulicLift.Text = gStr.gsSendAndSave;
             //tramsconfig
