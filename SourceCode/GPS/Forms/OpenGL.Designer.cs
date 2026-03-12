@@ -377,11 +377,17 @@ namespace AgOpenGPS
                             GL.LineWidth(ABLine.lineWidth * 3);
 
                             GL.Color4(0, 0, 0, 0.80f);
-                            bnd.bndList[0].hdLine.DrawPolygon();
+                            for (int i = 0; i < bnd.bndList.Count; i++)
+                            {
+                                bnd.bndList[i].hdLine.DrawPolygon();
+                            }
 
                             GL.LineWidth(ABLine.lineWidth);
                             GL.Color4(0.960f, 0.96232f, 0.30f, 1.0f);
-                            bnd.bndList[0].hdLine.DrawPolygon();
+                            for (int i = 0; i < bnd.bndList.Count; i++)
+                            {
+                                bnd.bndList[i].hdLine.DrawPolygon();
+                            }
                         }
                     }
 
@@ -871,7 +877,10 @@ namespace AgOpenGPS
                 {
                     GL.LineWidth(3);
                     GL.Color3((byte)0, (byte)250, (byte)0);
-                    bnd.bndList[0].hdLine.DrawPolygon();
+                    for (int i = 0; i < bnd.bndList.Count; i++)
+                    {
+                        bnd.bndList[i].hdLine.DrawPolygon();
+                    }
                 }
             }
 

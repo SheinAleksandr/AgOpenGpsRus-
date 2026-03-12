@@ -57,23 +57,26 @@ namespace AgOpenGPS
 
             btnClipLine.Enabled = false;
 
-            if (mf.bnd.bndList[0].hdLine.Count == 0)
+            for (int b = 0; b < mf.bnd.bndList.Count; b++)
             {
-                mf.bnd.bndList[0].hdLine?.Clear();
-
-                if (mf.bnd.bndList[0].fenceLine.Count > 0)
+                if (mf.bnd.bndList[b].hdLine.Count == 0)
                 {
-                    for (int i = 0; i < mf.bnd.bndList[0].fenceLine.Count; i++)
+                    mf.bnd.bndList[b].hdLine?.Clear();
+
+                    if (mf.bnd.bndList[b].fenceLine.Count > 0)
                     {
-                        mf.bnd.bndList[0].hdLine.Add(new vec3(mf.bnd.bndList[0].fenceLine[i]));
+                        for (int i = 0; i < mf.bnd.bndList[b].fenceLine.Count; i++)
+                        {
+                            mf.bnd.bndList[b].hdLine.Add(new vec3(mf.bnd.bndList[b].fenceLine[i]));
+                        }
                     }
                 }
-            }
-            else
-            {
-                //make sure point distance isn't too big 
-                mf.curve.MakePointMinimumSpacing(ref mf.bnd.bndList[0].hdLine, 1.2);
-                mf.curve.CalculateHeadings(ref mf.bnd.bndList[0].hdLine);
+                else
+                {
+                    //make sure point distance isn't too big
+                    mf.curve.MakePointMinimumSpacing(ref mf.bnd.bndList[b].hdLine, 1.2);
+                    mf.curve.CalculateHeadings(ref mf.bnd.bndList[b].hdLine);
+                }
             }
 
             cboxIsSectionControlled.Checked = Properties.Settings.Default.setHeadland_isSectionControlled;
@@ -484,13 +487,17 @@ namespace AgOpenGPS
 
             GL.LineWidth(8);
             GL.Color3(0.943f, 0.9083f, 0.09150f);
-            GL.Begin(PrimitiveType.LineLoop);
-
-            for (int i = 0; i < mf.bnd.bndList[0].hdLine.Count; i++)
+            for (int b = 0; b < mf.bnd.bndList.Count; b++)
             {
-                GL.Vertex3(mf.bnd.bndList[0].hdLine[i].easting, mf.bnd.bndList[0].hdLine[i].northing, 0);
+                if (mf.bnd.bndList[b].hdLine.Count < 2) continue;
+
+                GL.Begin(PrimitiveType.LineLoop);
+                for (int i = 0; i < mf.bnd.bndList[b].hdLine.Count; i++)
+                {
+                    GL.Vertex3(mf.bnd.bndList[b].hdLine[i].easting, mf.bnd.bndList[b].hdLine[i].northing, 0);
+                }
+                GL.End();
             }
-            GL.End();
 
             if (sliceArr.Count > 0)
             {
@@ -708,92 +715,75 @@ namespace AgOpenGPS
 
         private void btnBndLoop_Click(object sender, EventArgs e)
         {
-            int ptCount = mf.bnd.bndList[0].fenceLine.Count;
-
             if (nudSetDistance.Value == 0)
             {
-                mf.hdl.desList.Clear();
-
-                mf.bnd.bndList[0].hdLine?.Clear();
-
-                for (int i = 0; i < ptCount; i++)
+                for (int b = 0; b < mf.bnd.bndList.Count; b++)
                 {
-                    mf.bnd.bndList[0].hdLine.Add(new vec3(mf.bnd.bndList[0].fenceLine[i]));
+                    mf.bnd.bndList[b].hdLine?.Clear();
+                    int ptCount = mf.bnd.bndList[b].fenceLine.Count;
+                    for (int i = 0; i < ptCount; i++)
+                    {
+                        mf.bnd.bndList[b].hdLine.Add(new vec3(mf.bnd.bndList[b].fenceLine[i]));
+                    }
                 }
             }
             else
             {
-                mf.hdl.desList?.Clear();
-
-                //outside point
-                vec3 pt3 = new vec3();
-
                 double moveDist = (double)nudSetDistance.Value * mf.ftOrMtoM;
                 double distSq = (moveDist) * (moveDist) * 0.999;
 
-                //make the boundary tram outer array
-                for (int i = 0; i < ptCount; i++)
+                for (int b = 0; b < mf.bnd.bndList.Count; b++)
                 {
-                    //calculate the point inside the boundary
-                    pt3.easting = mf.bnd.bndList[0].fenceLine[i].easting -
-                        (Math.Sin(glm.PIBy2 + mf.bnd.bndList[0].fenceLine[i].heading) * (moveDist));
+                    int ptCount = mf.bnd.bndList[b].fenceLine.Count;
+                    List<vec3> newHd = new List<vec3>(ptCount + 8);
 
-                    pt3.northing = mf.bnd.bndList[0].fenceLine[i].northing -
-                        (Math.Cos(glm.PIBy2 + mf.bnd.bndList[0].fenceLine[i].heading) * (moveDist));
-
-                    pt3.heading = mf.bnd.bndList[0].fenceLine[i].heading;
-
-                    bool Add = true;
-
-                    for (int j = 0; j < ptCount; j++)
+                    for (int i = 0; i < ptCount; i++)
                     {
-                        double check = glm.DistanceSquared(pt3.northing, pt3.easting,
-                                            mf.bnd.bndList[0].fenceLine[j].northing, mf.bnd.bndList[0].fenceLine[j].easting);
-                        if (check < distSq)
+                        vec3 pt3 = new vec3
                         {
-                            Add = false;
-                            break;
+                            easting = mf.bnd.bndList[b].fenceLine[i].easting -
+                                      (Math.Sin(glm.PIBy2 + mf.bnd.bndList[b].fenceLine[i].heading) * moveDist),
+                            northing = mf.bnd.bndList[b].fenceLine[i].northing -
+                                       (Math.Cos(glm.PIBy2 + mf.bnd.bndList[b].fenceLine[i].heading) * moveDist),
+                            heading = mf.bnd.bndList[b].fenceLine[i].heading
+                        };
+
+                        if (!(b == 0 == mf.bnd.bndList[b].fenceLineEar.IsPointInPolygon(pt3)))
+                        {
+                            continue;
+                        }
+
+                        bool add = true;
+                        for (int j = 0; j < ptCount; j++)
+                        {
+                            double check = glm.DistanceSquared(
+                                pt3.northing, pt3.easting,
+                                mf.bnd.bndList[b].fenceLine[j].northing, mf.bnd.bndList[b].fenceLine[j].easting);
+                            if (check < distSq)
+                            {
+                                add = false;
+                                break;
+                            }
+                        }
+
+                        if (!add) continue;
+                        if (newHd.Count == 0 || glm.DistanceSquared(newHd[newHd.Count - 1], pt3) > 1)
+                        {
+                            newHd.Add(pt3);
                         }
                     }
 
-                    if (Add)
+                    mf.bnd.bndList[b].hdLine.Clear();
+                    if (newHd.Count == 0) continue;
+
+                    newHd.Add(new vec3(newHd[0]));
+                    if (newHd.Count > 3)
                     {
-                        if (mf.hdl.desList.Count > 0)
-                        {
-                            double dist = ((pt3.easting - mf.hdl.desList[mf.hdl.desList.Count - 1].easting) * (pt3.easting - mf.hdl.desList[mf.hdl.desList.Count - 1].easting))
-                                + ((pt3.northing - mf.hdl.desList[mf.hdl.desList.Count - 1].northing) * (pt3.northing - mf.hdl.desList[mf.hdl.desList.Count - 1].northing));
-                            if (dist > 1)
-                                mf.hdl.desList.Add(pt3);
-                        }
-                        else mf.hdl.desList.Add(pt3);
+                        mf.curve.MakePointMinimumSpacing(ref newHd, 1.2);
+                        mf.curve.CalculateHeadings(ref newHd);
                     }
-                }
 
-                if (mf.hdl.desList.Count == 0)
-                {
-                    return;
-                }
-
-                pt3 = new vec3(mf.hdl.desList[0]);
-                mf.hdl.desList.Add(pt3);
-
-                int cnt = mf.hdl.desList.Count;
-                if (cnt > 3)
-                {
-                    pt3 = new vec3(mf.hdl.desList[0]);
-                    mf.hdl.desList.Add(pt3);
-
-                    //make sure point distance isn't too big 
-                    mf.curve.MakePointMinimumSpacing(ref mf.hdl.desList, 1.2);
-                    mf.curve.CalculateHeadings(ref mf.hdl.desList);
-
-                    mf.bnd.bndList[0].hdLine.Clear();
-
-                    //write out the Points
-                    foreach (vec3 item in mf.hdl.desList)
-                    {
-                        mf.bnd.bndList[0].hdLine.Add(item);
-                    }
+                    foreach (vec3 item in newHd) mf.bnd.bndList[b].hdLine.Add(item);
                 }
             }
 
@@ -1014,7 +1004,10 @@ namespace AgOpenGPS
 
         private void btnHeadlandOff_Click(object sender, EventArgs e)
         {
-            mf.bnd.bndList[0].hdLine?.Clear();
+            for (int i = 0; i < mf.bnd.bndList.Count; i++)
+            {
+                mf.bnd.bndList[i].hdLine?.Clear();
+            }
             mf.FileSaveHeadland();
             mf.bnd.isHeadlandOn = false;
             mf.vehicle.isHydLiftOn = false;
