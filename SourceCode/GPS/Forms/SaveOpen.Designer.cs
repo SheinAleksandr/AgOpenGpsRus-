@@ -370,7 +370,10 @@ namespace AgOpenGPS
             // Boundary & Headland
             btnABDraw.Visible = bnd?.bndList != null && bnd.bndList.Count > 0;
 
-            bool hasHeadland = bnd != null && bnd.HasAnyHeadland();
+            bool hasHeadland = bnd?.bndList != null
+                && bnd.bndList.Count > 0
+                && bnd.bndList[0]?.hdLine != null
+                && bnd.bndList[0].hdLine.Count > 0;
 
             bnd.isHeadlandOn = hasHeadland;
             btnHeadlandOnOff.Visible = hasHeadland;

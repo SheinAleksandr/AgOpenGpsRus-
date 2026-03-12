@@ -36,10 +36,6 @@ namespace AgOpenGPS
         byte[] grnPixels = new byte[150001];
 
         private bool isHeadlandClose = false;
-        private bool uturnPgnFilteredActive = false;
-        private bool uturnPgnCandidateActive = false;
-        private int uturnPgnCandidateFrames = 0;
-        private const int UturnPgnDebounceFrames = 3;
 
         private void SetVehicleTextures()
         {
@@ -381,17 +377,11 @@ namespace AgOpenGPS
                             GL.LineWidth(ABLine.lineWidth * 3);
 
                             GL.Color4(0, 0, 0, 0.80f);
-                            for (int i = 0; i < bnd.bndList.Count; i++)
-                            {
-                                bnd.bndList[i].hdLine.DrawPolygon();
-                            }
+                            bnd.bndList[0].hdLine.DrawPolygon();
 
                             GL.LineWidth(ABLine.lineWidth);
                             GL.Color4(0.960f, 0.96232f, 0.30f, 1.0f);
-                            for (int i = 0; i < bnd.bndList.Count; i++)
-                            {
-                                bnd.bndList[i].hdLine.DrawPolygon();
-                            }
+                            bnd.bndList[0].hdLine.DrawPolygon();
                         }
                     }
 
@@ -881,10 +871,7 @@ namespace AgOpenGPS
                 {
                     GL.LineWidth(3);
                     GL.Color3((byte)0, (byte)250, (byte)0);
-                    for (int i = 0; i < bnd.bndList.Count; i++)
-                    {
-                        bnd.bndList[i].hdLine.DrawPolygon();
-                    }
+                    bnd.bndList[0].hdLine.DrawPolygon();
                 }
             }
 
@@ -1765,53 +1752,13 @@ namespace AgOpenGPS
         {
             GL.Enable(EnableCap.Texture2D);
 
-            bool rawUturnPgnActive = yt.isYouTurnTriggered;
+            bool isUturnPgnActive = yt.isYouTurnTriggered;
             if (bnd.isHeadlandOn)
             {
                 double powerDown = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerDownDistance);
                 double powerUp = Math.Max(powerDown, Properties.Settings.Default.setUturnPgnPowerUpDistance);
-                // Avoid one-frame spikes while next turn is being calculated.
-                // Custom PGN window is valid only for a ready turn path.
-                if (yt.youTurnPhase == 10 && yt.ytList != null && yt.ytList.Count > 0)
-                {
-                    rawUturnPgnActive = yt.GetPgnHydWindowStateByProgress(toolPivotPos, powerDown, powerUp);
-                }
-                else
-                {
-                    rawUturnPgnActive = false;
-                }
+                isUturnPgnActive = bnd.IsPointInHydLiftWindow(toolPivotPos, powerDown, powerUp);
             }
-
-            if (!rawUturnPgnActive && yt.youTurnPhase == 0 && (yt.ytList == null || yt.ytList.Count == 0))
-            {
-                uturnPgnFilteredActive = false;
-                uturnPgnCandidateActive = false;
-                uturnPgnCandidateFrames = 0;
-            }
-
-            if (rawUturnPgnActive == uturnPgnFilteredActive)
-            {
-                uturnPgnCandidateFrames = 0;
-            }
-            else
-            {
-                if (rawUturnPgnActive != uturnPgnCandidateActive)
-                {
-                    uturnPgnCandidateActive = rawUturnPgnActive;
-                    uturnPgnCandidateFrames = 1;
-                }
-                else
-                {
-                    uturnPgnCandidateFrames++;
-                    if (uturnPgnCandidateFrames >= UturnPgnDebounceFrames)
-                    {
-                        uturnPgnFilteredActive = uturnPgnCandidateActive;
-                        uturnPgnCandidateFrames = 0;
-                    }
-                }
-            }
-
-            bool isUturnPgnActive = uturnPgnFilteredActive;
 
             if (!isUturnPgnActive)
             {

@@ -774,9 +774,11 @@ namespace AgOpenGPS
             if (isJobStarted)
             {
                 int tracksTotal = 0, tracksVisible = 0;
-                bool isHdl = bnd.HasAnyHeadland();
+                bool isHdl = false;
 
                 bool isBnd = bnd.bndList.Count > 0;
+                if (!isBnd) isHdl = isBnd;
+                else isHdl = bnd.bndList[0].hdLine.Count > 0;
 
                 bool istram = (tram.tramList.Count + tram.tramBndOuterArr.Count) > 0;
 
