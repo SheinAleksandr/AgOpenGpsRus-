@@ -1,5 +1,7 @@
 ﻿using System;
 
+using System.Collections.Generic;
+
 namespace AgOpenGPS
 {
     public partial class CBoundary
@@ -11,6 +13,21 @@ namespace AgOpenGPS
 
         public vec2? HeadlandNearestPoint { get; private set; } = null;
         public double? HeadlandDistance { get; private set; } = null;
+
+        public bool HasAnyHeadland()
+        {
+            if (bndList == null || bndList.Count == 0) return false;
+
+            for (int i = 0; i < bndList.Count; i++)
+            {
+                if (bndList[i].hdLine != null && bndList[i].hdLine.Count > 2)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         public void SetHydPosition()
         {
@@ -39,7 +56,7 @@ namespace AgOpenGPS
 
         public void WhereAreToolCorners()
         {
-            if (bndList.Count > 0 && bndList[0].hdLine.Count > 0)
+            if (HasAnyHeadland())
             {
                 bool isLeftInWk, isRightInWk = true;
 
@@ -66,7 +83,7 @@ namespace AgOpenGPS
 
         public void WhereAreToolLookOnPoints()
         {
-            if (bndList.Count > 0 && bndList[0].hdLine.Count > 0)
+            if (HasAnyHeadland())
             {
                 bool isLookRightIn = false;
 
@@ -98,12 +115,14 @@ namespace AgOpenGPS
 
         public bool IsPointInsideHeadArea(vec2 pt)
         {
+            if (bndList.Count == 0 || bndList[0].hdLine == null || bndList[0].hdLine.Count < 3) return false;
+
             //if inside outer boundary, then potentially add
             if (bndList[0].hdLine.IsPointInPolygon(pt))
             {
                 for (int i = 1; i < bndList.Count; i++)
                 {
-                    if (bndList[i].hdLine.IsPointInPolygon(pt))
+                    if (bndList[i].hdLine != null && bndList[i].hdLine.Count > 2 && bndList[i].hdLine.IsPointInPolygon(pt))
                     {
                         return false;
                     }
@@ -115,30 +134,89 @@ namespace AgOpenGPS
 
         public bool IsPointInHydLiftWindow(vec3 pt, double beforeMeters, double afterMeters)
         {
-            if (!isHeadlandOn || bndList.Count == 0 || bndList[0].hdLine.Count < 2) return false;
+            if (!isHeadlandOn || !HasAnyHeadland()) return false;
 
             if (beforeMeters < 0) beforeMeters = 0;
             if (afterMeters < 0) afterMeters = 0;
 
-            vec2? ahead = glm.RaycastToPolygon(pt, bndList[0].hdLine);
-
             vec3 reversePt = new vec3(pt);
             reversePt.heading += Math.PI;
             if (reversePt.heading >= glm.twoPI) reversePt.heading -= glm.twoPI;
-            vec2? behind = glm.RaycastToPolygon(reversePt, bndList[0].hdLine);
 
-            bool nearBefore = ahead.HasValue && glm.Distance(pt.ToVec2(), ahead.Value) <= beforeMeters;
-            bool nearAfter = behind.HasValue && glm.Distance(pt.ToVec2(), behind.Value) <= afterMeters;
+            for (int i = 0; i < bndList.Count; i++)
+            {
+                if (bndList[i].hdLine == null || bndList[i].hdLine.Count < 2) continue;
 
-            // In existing semantics points outside "head area" are in headland zone.
-            bool inHeadlandZone = !IsPointInsideHeadArea(pt.ToVec2());
+                vec2? ahead = glm.RaycastToPolygon(pt, bndList[i].hdLine);
+                vec2? behind = glm.RaycastToPolygon(reversePt, bndList[i].hdLine);
 
-            return nearBefore || inHeadlandZone || nearAfter;
+                double nearestHdDist = DistanceToPolyline(pt.ToVec2(), bndList[i].hdLine);
+                bool nearBefore = ahead.HasValue
+                    ? glm.Distance(pt.ToVec2(), ahead.Value) <= beforeMeters
+                    : nearestHdDist <= beforeMeters;
+                bool nearAfter = behind.HasValue
+                    ? glm.Distance(pt.ToVec2(), behind.Value) <= afterMeters
+                    : nearestHdDist <= afterMeters;
+
+                bool inHeadlandZone;
+                if (i == 0)
+                {
+                    inHeadlandZone = !bndList[i].hdLine.IsPointInPolygon(pt.ToVec2());
+                }
+                else
+                {
+                    // Ignore inner headland zone only for turns where obstacle bypass is active.
+                    if (mf.yt.isInnerBypassTurnActive) continue;
+
+                    // Otherwise this inner zone may hold power- while inside.
+                    inHeadlandZone = bndList[i].hdLine.IsPointInPolygon(pt.ToVec2());
+                }
+
+                if (nearBefore || inHeadlandZone || nearAfter)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static double DistanceToPolyline(vec2 p, List<vec3> line)
+        {
+            if (line == null || line.Count < 2) return double.MaxValue;
+
+            double minDistSq = double.MaxValue;
+            for (int i = 0; i < line.Count - 1; i++)
+            {
+                vec2 a = line[i].ToVec2();
+                vec2 b = line[i + 1].ToVec2();
+                double dSq = DistancePointToSegmentSquared(p, a, b);
+                if (dSq < minDistSq) minDistSq = dSq;
+            }
+            return Math.Sqrt(minDistSq);
+        }
+
+        private static double DistancePointToSegmentSquared(vec2 p, vec2 a, vec2 b)
+        {
+            double vx = b.easting - a.easting;
+            double vy = b.northing - a.northing;
+            double wx = p.easting - a.easting;
+            double wy = p.northing - a.northing;
+
+            double c1 = vx * wx + vy * wy;
+            if (c1 <= 0) return glm.DistanceSquared(p, a);
+
+            double c2 = vx * vx + vy * vy;
+            if (c2 <= c1) return glm.DistanceSquared(p, b);
+
+            double t = c1 / c2;
+            vec2 proj = new vec2(a.easting + t * vx, a.northing + t * vy);
+            return glm.DistanceSquared(p, proj);
         }
 
         public void CheckHeadlandProximity()
         {
-            if (!isHeadlandOn || bndList.Count == 0 || bndList[0].hdLine.Count < 2)
+            if (!isHeadlandOn || !HasAnyHeadland())
             {
                 HeadlandNearestPoint = null;
                 HeadlandDistance = null;
@@ -146,9 +224,27 @@ namespace AgOpenGPS
             }
 
             vec3 vehiclePos = mf.toolPivotPos;
+            vec2? nearest = null;
+            double minDistance = double.MaxValue;
+            int nearestHdIndex = -1;
 
-            vec2? nearest = glm.RaycastToPolygon(vehiclePos, bndList[0].hdLine);
-            if (!nearest.HasValue)
+            for (int i = 0; i < bndList.Count; i++)
+            {
+                if (bndList[i].hdLine == null || bndList[i].hdLine.Count < 2) continue;
+
+                vec2? hit = glm.RaycastToPolygon(vehiclePos, bndList[i].hdLine);
+                if (!hit.HasValue) continue;
+
+                double d = glm.Distance(vehiclePos.ToVec2(), hit.Value);
+                if (d < minDistance)
+                {
+                    minDistance = d;
+                    nearest = hit;
+                    nearestHdIndex = i;
+                }
+            }
+
+            if (!nearest.HasValue || nearestHdIndex == -1)
             {
                 HeadlandNearestPoint = null;
                 HeadlandDistance = null;
@@ -156,12 +252,12 @@ namespace AgOpenGPS
             }
 
             vec2 nearestVal = nearest.Value;
-            double distance = glm.Distance(vehiclePos.ToVec2(), nearestVal);
+            double distance = minDistance;
 
             HeadlandNearestPoint = nearestVal;
             HeadlandDistance = distance;
 
-            bool isInside = bndList[0].hdLine.IsPointInPolygon(vehiclePos.ToVec2());
+            bool isInside = bndList[nearestHdIndex].hdLine.IsPointInPolygon(vehiclePos.ToVec2());
 
             double dx = nearestVal.easting - vehiclePos.easting;
             double dy = nearestVal.northing - vehiclePos.northing;

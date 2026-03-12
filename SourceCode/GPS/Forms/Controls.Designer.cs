@@ -590,7 +590,7 @@ namespace AgOpenGPS
 
             FieldMenuButtonEnableDisable(isJobStarted);
             toolStripBtnFieldTools.Enabled = isJobStarted;
-            bnd.isHeadlandOn = (bnd.bndList.Count > 0 && bnd.bndList[0].hdLine.Count > 0);
+            bnd.isHeadlandOn = bnd.HasAnyHeadland();
             trk.idx = -1;
             PanelUpdateRightAndBottom();
         }
@@ -754,7 +754,7 @@ namespace AgOpenGPS
                 form.ShowDialog(this);
             }
 
-            bnd.isHeadlandOn = (bnd.bndList.Count > 0 && bnd.bndList[0].hdLine.Count > 0);
+            bnd.isHeadlandOn = bnd.HasAnyHeadland();
 
             PanelsAndOGLSize();
             PanelUpdateRightAndBottom();
@@ -783,7 +783,7 @@ namespace AgOpenGPS
                 form.ShowDialog(this);
             }
 
-            bnd.isHeadlandOn = (bnd.bndList.Count > 0 && bnd.bndList[0].hdLine.Count > 0);
+            bnd.isHeadlandOn = bnd.HasAnyHeadland();
 
             PanelsAndOGLSize();
             PanelUpdateRightAndBottom();

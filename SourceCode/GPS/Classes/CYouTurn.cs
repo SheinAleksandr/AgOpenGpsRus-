@@ -48,6 +48,8 @@ namespace AgOpenGPS
         public List<vec3> ytList = new List<vec3>();
         private List<vec3> ytList2 = new List<vec3>();
 
+        public bool isInnerBypassTurnActive;
+
         //next curve or line to build out turn and point over
         public List<vec3> nextCurve = new List<vec3>();
 
@@ -213,6 +215,7 @@ namespace AgOpenGPS
                 + (isTurnLeft ? -mf.tool.offset * 2.0 : mf.tool.offset * 2.0);
 
             pointSpacing = youTurnRadius * 0.1;
+            isInnerBypassTurnActive = false;
 
             if (uTurnStyle == 0)
             {
@@ -222,11 +225,12 @@ namespace AgOpenGPS
                 {
                     isInnerAhead = IsClosestInnerTurnLineAheadOnAB();
                     isNeighborBlocked = IsInnerTurnLineCrossingAheadOnNeighborLine();
-                    bool shouldForceWide = isInnerAhead && !isNeighborBlocked;
                 }
 
+                // Keep bypass condition aligned with master logic.
                 if (isInnerAhead && !isNeighborBlocked)
                 {
+                    isInnerBypassTurnActive = true;
                     return CreateABWideTurn();
                 }
 
@@ -272,9 +276,6 @@ namespace AgOpenGPS
         {
             if (mf.bnd?.bndList == null || mf.bnd.bndList.Count < 2) return false;
 
-            vec2 lineA = mf.ABLine.currentLinePtA.ToVec2();
-            vec2 lineB = mf.ABLine.currentLinePtB.ToVec2();
-
             double head = mf.ABLine.abHeading;
             if (!mf.ABLine.isHeadingSameWay) head += Math.PI;
             if (head >= glm.twoPI) head -= glm.twoPI;
@@ -283,10 +284,18 @@ namespace AgOpenGPS
             vec2 leftNormal = new vec2(-forward.northing, forward.easting);
             double widthMinusOverlap = mf.tool.width - mf.tool.overlap;
             double offset = isTurnLeft ? widthMinusOverlap : -widthMinusOverlap;
-
-            vec2 offsetA = new vec2(lineA.easting + (leftNormal.easting * offset), lineA.northing + (leftNormal.northing * offset));
-            vec2 offsetB = new vec2(lineB.easting + (leftNormal.easting * offset), lineB.northing + (leftNormal.northing * offset));
             vec2 pivot = mf.pivotAxlePos.ToVec2();
+            vec2 shiftedPivot = new vec2(
+                pivot.easting + (leftNormal.easting * offset),
+                pivot.northing + (leftNormal.northing * offset));
+
+            const double gateLineHalfLen = 5000.0;
+            vec2 offsetA = new vec2(
+                shiftedPivot.easting - (forward.easting * gateLineHalfLen),
+                shiftedPivot.northing - (forward.northing * gateLineHalfLen));
+            vec2 offsetB = new vec2(
+                shiftedPivot.easting + (forward.easting * gateLineHalfLen),
+                shiftedPivot.northing + (forward.northing * gateLineHalfLen));
 
             for (int b = 1; b < mf.bnd.bndList.Count; b++)
             {
@@ -312,7 +321,6 @@ namespace AgOpenGPS
 
             return false;
         }
-
 
         #region CreateTurn
 
@@ -2570,6 +2578,13 @@ namespace AgOpenGPS
             isOutSameCurve = false;
             isGoingStraightThrough = false;
             maxProgressIndexReached = 0;
+            isInnerBypassTurnActive = false;
+            isPgnHydWindowCacheValid = false;
+            pgnHydWindowCacheCount = -1;
+            pgnHydWindowCacheSig = double.NaN;
+            pgnHydWindowPowerDownCache = double.NaN;
+            pgnHydWindowPowerUpCache = double.NaN;
+            pgnHydWindowCache.Clear();
         }
 
         public void FailCreate()
@@ -2681,6 +2696,83 @@ namespace AgOpenGPS
 
         public int onA;
         private int maxProgressIndexReached = 0;
+        private readonly List<bool> pgnHydWindowCache = new List<bool>();
+        private bool isPgnHydWindowCacheValid = false;
+        private int pgnHydWindowCacheCount = -1;
+        private double pgnHydWindowCacheSig = double.NaN;
+        private double pgnHydWindowPowerDownCache = double.NaN;
+        private double pgnHydWindowPowerUpCache = double.NaN;
+
+        private double GetYtSignature()
+        {
+            if (ytList == null || ytList.Count == 0) return 0;
+            int last = ytList.Count - 1;
+            int mid = ytList.Count / 2;
+
+            return
+                (ytList[0].easting * 0.13) + (ytList[0].northing * 0.17) +
+                (ytList[mid].easting * 0.19) + (ytList[mid].northing * 0.23) +
+                (ytList[last].easting * 0.29) + (ytList[last].northing * 0.31);
+        }
+
+        private void EnsurePgnHydWindowCache(double powerDown, double powerUp)
+        {
+            if (ytList == null || ytList.Count == 0)
+            {
+                pgnHydWindowCache.Clear();
+                isPgnHydWindowCacheValid = false;
+                pgnHydWindowCacheCount = 0;
+                pgnHydWindowCacheSig = 0;
+                pgnHydWindowPowerDownCache = powerDown;
+                pgnHydWindowPowerUpCache = powerUp;
+                return;
+            }
+
+            double sig = GetYtSignature();
+            bool mustRebuild =
+                !isPgnHydWindowCacheValid
+                || pgnHydWindowCacheCount != ytList.Count
+                || Math.Abs(pgnHydWindowPowerDownCache - powerDown) > 0.0001
+                || Math.Abs(pgnHydWindowPowerUpCache - powerUp) > 0.0001
+                || Math.Abs(pgnHydWindowCacheSig - sig) > 0.0001;
+
+            if (!mustRebuild) return;
+
+            pgnHydWindowCache.Clear();
+            pgnHydWindowCache.Capacity = ytList.Count;
+            for (int i = 0; i < ytList.Count; i++)
+            {
+                pgnHydWindowCache.Add(mf.bnd.IsPointInHydLiftWindow(ytList[i], powerDown, powerUp));
+            }
+
+            isPgnHydWindowCacheValid = true;
+            pgnHydWindowCacheCount = ytList.Count;
+            pgnHydWindowCacheSig = sig;
+            pgnHydWindowPowerDownCache = powerDown;
+            pgnHydWindowPowerUpCache = powerUp;
+        }
+
+        public bool GetPgnHydWindowStateByProgress(vec3 fallback, double powerDown, double powerUp)
+        {
+            if (ytList == null || ytList.Count == 0)
+            {
+                return mf.bnd.IsPointInHydLiftWindow(fallback, powerDown, powerUp);
+            }
+
+            EnsurePgnHydWindowCache(powerDown, powerUp);
+
+            int idx = maxProgressIndexReached;
+            if (idx < 0) idx = 0;
+            if (idx >= ytList.Count) idx = ytList.Count - 1;
+            return pgnHydWindowCache[idx];
+        }
+
+        public bool IsYtPointInPgnHydWindow(int idx, double powerDown, double powerUp)
+        {
+            EnsurePgnHydWindowCache(powerDown, powerUp);
+            if (idx < 0 || idx >= pgnHydWindowCache.Count) return false;
+            return pgnHydWindowCache[idx];
+        }
 
         //determine distance from youTurn guidance line
         public bool DistanceFromYouTurnLine()
@@ -3016,7 +3108,7 @@ namespace AgOpenGPS
             GL.Begin(PrimitiveType.Points);
             for (int i = 0; i < ytList.Count; i++)
             {
-                if (mf.bnd.IsPointInHydLiftWindow(ytList[i], powerDown, powerUp))
+                if (IsYtPointInPgnHydWindow(i, powerDown, powerUp))
                 {
                     GL.Vertex3(ytList[i].easting, ytList[i].northing, 0);
                 }
