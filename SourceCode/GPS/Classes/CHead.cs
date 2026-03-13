@@ -176,6 +176,9 @@ namespace AgOpenGPS
 
         private bool IsABLineCrossingTurnLine(int bndIdx)
         {
+            // If a UTurn maneuver is already in progress, keep the flag active
+            if (mf.yt.isYouTurnTriggered) return true;
+
             var turnLine = bndList[bndIdx].turnLine;
             if (turnLine == null || turnLine.Count < 2) return false;
 
