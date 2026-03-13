@@ -76,8 +76,28 @@ namespace AgOpenGPS
                 //save right side
                 mf.tool.isRightSideInHeadland = !isRightInWk;
 
-                //is the tool in or out based on endpoints
-                isToolOuterPointsInHeadland = mf.tool.isLeftSideInHeadland && mf.tool.isRightSideInHeadland;
+                // Outer boundary only: tool width based trigger (ignore inner hdLine zones)
+                bool leftInOuterHd = bndList[0].hdLine != null && bndList[0].hdLine.Count > 2
+                    && !bndList[0].hdLine.IsPointInPolygon(mf.section[0].leftPoint);
+                bool rightInOuterHd = bndList[0].hdLine != null && bndList[0].hdLine.Count > 2
+                    && !bndList[0].hdLine.IsPointInPolygon(mf.section[mf.tool.numOfSections - 1].rightPoint);
+                isToolOuterPointsInHeadland = leftInOuterHd && rightInOuterHd;
+
+                // Inner boundaries: pivot inside hdLine zone AND AB line crosses turnLine
+                if (!isToolOuterPointsInHeadland)
+                {
+                    vec2 pivotPt = mf.toolPivotPos.ToVec2();
+                    for (int i = 1; i < bndList.Count; i++)
+                    {
+                        if (bndList[i].hdLine == null || bndList[i].hdLine.Count < 3) continue;
+                        if (!bndList[i].hdLine.IsPointInPolygon(pivotPt)) continue;
+                        if (IsABLineCrossingTurnLine(i))
+                        {
+                            isToolOuterPointsInHeadland = true;
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -139,34 +159,30 @@ namespace AgOpenGPS
             if (beforeMeters < 0) beforeMeters = 0;
             if (afterMeters < 0) afterMeters = 0;
 
-            vec3 reversePt = new vec3(pt);
-            reversePt.heading += Math.PI;
-            if (reversePt.heading >= glm.twoPI) reversePt.heading -= glm.twoPI;
+            vec2 ptVec2 = pt.ToVec2();
+            double fwdX = Math.Sin(pt.heading);
+            double fwdY = Math.Cos(pt.heading);
 
             for (int i = 0; i < bndList.Count; i++)
             {
                 if (bndList[i].hdLine == null || bndList[i].hdLine.Count < 2) continue;
 
-                vec2? ahead = glm.RaycastToPolygon(pt, bndList[i].hdLine);
-                vec2? behind = glm.RaycastToPolygon(reversePt, bndList[i].hdLine);
-
-                double nearestHdDist = DistanceToPolyline(pt.ToVec2(), bndList[i].hdLine);
-                bool nearBefore = ahead.HasValue
-                    ? glm.Distance(pt.ToVec2(), ahead.Value) <= beforeMeters
-                    : nearestHdDist <= beforeMeters;
-                bool nearAfter = behind.HasValue
-                    ? glm.Distance(pt.ToVec2(), behind.Value) <= afterMeters
-                    : nearestHdDist <= afterMeters;
+                double nearestDist = NearestPointOnPolyline(ptVec2, bndList[i].hdLine, out vec2 nearestPt);
 
                 bool inHeadlandZone = (i == 0)
-                    ? !bndList[i].hdLine.IsPointInPolygon(pt.ToVec2())
-                    : bndList[i].hdLine.IsPointInPolygon(pt.ToVec2());
+                    ? !bndList[i].hdLine.IsPointInPolygon(ptVec2)
+                    : bndList[i].hdLine.IsPointInPolygon(ptVec2);
+
+                // dot > 0: boundary is ahead (approaching), dot < 0: boundary is behind (just exited)
+                double dot = fwdX * (nearestPt.easting - ptVec2.easting)
+                           + fwdY * (nearestPt.northing - ptVec2.northing);
+
+                bool nearBefore = dot > 0 && nearestDist <= beforeMeters;
+                bool nearAfter  = !inHeadlandZone && dot < 0 && nearestDist <= afterMeters;
 
                 if (nearBefore || inHeadlandZone || nearAfter)
                 {
-                    // For inner boundaries: only trigger if the AB line actually crosses the turnLine of this boundary
                     if (i > 0 && !IsABLineCrossingTurnLine(i)) continue;
-
                     return true;
                 }
             }
@@ -210,8 +226,9 @@ namespace AgOpenGPS
             return t >= 0.0 && t <= 1.0 && u >= 0.0 && u <= 1.0;
         }
 
-        private static double DistanceToPolyline(vec2 p, List<vec3> line)
+        private static double NearestPointOnPolyline(vec2 p, List<vec3> line, out vec2 nearest)
         {
+            nearest = new vec2();
             if (line == null || line.Count < 2) return double.MaxValue;
 
             double minDistSq = double.MaxValue;
@@ -219,29 +236,24 @@ namespace AgOpenGPS
             {
                 vec2 a = line[i].ToVec2();
                 vec2 b = line[i + 1].ToVec2();
-                double dSq = DistancePointToSegmentSquared(p, a, b);
-                if (dSq < minDistSq) minDistSq = dSq;
+                vec2 candidate = ClosestPointOnSegment(p, a, b);
+                double dSq = glm.DistanceSquared(p, candidate);
+                if (dSq < minDistSq) { minDistSq = dSq; nearest = candidate; }
             }
             return Math.Sqrt(minDistSq);
         }
 
-        private static double DistancePointToSegmentSquared(vec2 p, vec2 a, vec2 b)
+        private static vec2 ClosestPointOnSegment(vec2 p, vec2 a, vec2 b)
         {
-            double vx = b.easting - a.easting;
-            double vy = b.northing - a.northing;
-            double wx = p.easting - a.easting;
-            double wy = p.northing - a.northing;
-
-            double c1 = vx * wx + vy * wy;
-            if (c1 <= 0) return glm.DistanceSquared(p, a);
-
+            double vx = b.easting - a.easting, vy = b.northing - a.northing;
+            double c1 = vx * (p.easting - a.easting) + vy * (p.northing - a.northing);
+            if (c1 <= 0) return a;
             double c2 = vx * vx + vy * vy;
-            if (c2 <= c1) return glm.DistanceSquared(p, b);
-
+            if (c2 <= c1) return b;
             double t = c1 / c2;
-            vec2 proj = new vec2(a.easting + t * vx, a.northing + t * vy);
-            return glm.DistanceSquared(p, proj);
+            return new vec2(a.easting + t * vx, a.northing + t * vy);
         }
+
 
         public void CheckHeadlandProximity()
         {

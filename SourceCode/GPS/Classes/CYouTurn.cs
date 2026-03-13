@@ -3011,7 +3011,7 @@ namespace AgOpenGPS
                 GL.Color3(0.395f, 0.925f, 0.30f);
 
             double powerDown = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerDownDistance);
-            double powerUp = Math.Max(powerDown, Properties.Settings.Default.setUturnPgnPowerUpDistance);
+            double powerUp = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerUpDistance);
 
             GL.Begin(PrimitiveType.Points);
             for (int i = 0; i < ytList.Count; i++)

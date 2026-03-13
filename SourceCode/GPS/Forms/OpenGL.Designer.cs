@@ -1765,7 +1765,7 @@ namespace AgOpenGPS
             if (bnd.isHeadlandOn)
             {
                 double powerDown = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerDownDistance);
-                double powerUp = Math.Max(powerDown, Properties.Settings.Default.setUturnPgnPowerUpDistance);
+                double powerUp = Math.Max(0, Properties.Settings.Default.setUturnPgnPowerUpDistance);
                 isUturnPgnActive = bnd.IsPointInHydLiftWindow(toolPivotPos, powerDown, powerUp);
             }
 
