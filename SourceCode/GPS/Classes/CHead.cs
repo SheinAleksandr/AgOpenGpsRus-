@@ -164,11 +164,47 @@ namespace AgOpenGPS
 
                 if (nearBefore || inHeadlandZone || nearAfter)
                 {
+                    // For inner boundaries: only trigger if the AB line actually crosses the turnLine of this boundary
+                    if (i > 0 && !IsABLineCrossingTurnLine(i)) continue;
+
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private bool IsABLineCrossingTurnLine(int bndIdx)
+        {
+            var turnLine = bndList[bndIdx].turnLine;
+            if (turnLine == null || turnLine.Count < 2) return false;
+
+            if (!mf.ABLine.isABValid) return false;
+
+            double aE = mf.ABLine.currentLinePtA.easting;
+            double aN = mf.ABLine.currentLinePtA.northing;
+            double bE = mf.ABLine.currentLinePtB.easting;
+            double bN = mf.ABLine.currentLinePtB.northing;
+
+            for (int i = 0; i < turnLine.Count - 1; i++)
+            {
+                if (SegmentsIntersect(
+                    turnLine[i].easting, turnLine[i].northing,
+                    turnLine[i + 1].easting, turnLine[i + 1].northing,
+                    aE, aN, bE, bN))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool SegmentsIntersect(double x1, double y1, double x2, double y2,
+                                               double x3, double y3, double x4, double y4)
+        {
+            double d = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
+            if (Math.Abs(d) < 1e-10) return false;
+            double t = ((x3 - x1) * (y4 - y3) - (y3 - y1) * (x4 - x3)) / d;
+            double u = ((x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1)) / d;
+            return t >= 0.0 && t <= 1.0 && u >= 0.0 && u <= 1.0;
         }
 
         private static double DistanceToPolyline(vec2 p, List<vec3> line)
