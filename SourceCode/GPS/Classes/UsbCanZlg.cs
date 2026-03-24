@@ -84,7 +84,7 @@ namespace AgOpenGPS
         bool imuTimedOut = true;
         const int ReconnectIntervalMs = 1000;
         const int InactivityReconnectMs = 2500;
-        const int DefaultImuTimeoutMs = 250;
+        const int DefaultImuTimeoutMs = 400;
         const int SteerSetting1_ImuUseYAxisBit = 1 << 3;
         readonly object canLock = new object();
 
@@ -324,7 +324,7 @@ namespace AgOpenGPS
                         CAN_INDEX,
                         rxBuffer,
                         100,
-                        100);
+                        5);
 
                     if (count < 0)
                     {
