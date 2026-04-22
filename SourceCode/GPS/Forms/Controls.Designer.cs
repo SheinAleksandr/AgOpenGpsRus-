@@ -1768,6 +1768,28 @@ namespace AgOpenGPS
             yt.ResetCreatedYouTurn();
         }
 
+        private void btnRadarAlt_Click(object sender, EventArgs e)
+        {
+            float current = Properties.Settings.Default.setRadar_altMinHeight;
+            using (var form = new FormNumeric(-3.0, 0.0, current))
+            {
+                if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    float newMin = (float)form.ReturnValue;
+                    Properties.Settings.Default.setRadar_altMinHeight = newMin;
+                    Properties.Settings.Default.Save();
+
+                    btnRadarAlt.Text = $"Alt:{newMin:F1}м";
+
+                    if (usbCan != null)
+                    {
+                        usbCan.RadarAltMinHeight = newMin;
+                        usbCan.SendRadarAltitude(newMin, UsbCanZlg.RadarAltMaxHeight);
+                    }
+                }
+            }
+        }
+
         private void btnRadarSens_Click(object sender, EventArgs e)
         {
             var btn = sender as Button;
@@ -1793,17 +1815,17 @@ namespace AgOpenGPS
 
             if (usbCan != null)
             {
-                byte sens = 5;
+                byte sens = 8;
                 switch (next)
                 {
                     case "RadHigh":
-                        sens = 1;
+                        sens = 5;
                         break;
                     case "RadLow":
-                        sens = 4;
+                        sens = 10;
                         break;
                     default:
-                        sens = 2;
+                        sens = 8;
                         break;
                 }
                 usbCan.SendRadarSensitivity(sens);

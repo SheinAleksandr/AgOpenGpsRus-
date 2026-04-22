@@ -94,6 +94,11 @@ namespace AgOpenGPS
         public readonly RadarSr71 radar = new RadarSr71();
         public readonly CRadar cradar = new CRadar();
 
+        // настройки отправляемые в радар при каждом подключении
+        public byte RadarSensitivity = 8;
+        public float RadarAltMinHeight = -1.2f;
+        public const float RadarAltMaxHeight = 2.0f;
+
         // ===== STATISTICS =====
         private long totalFramesReceived = 0;
         private long totalParseErrors = 0;
@@ -161,6 +166,7 @@ namespace AgOpenGPS
                     rxThread.Start();
 
                     lastRadarFrameTime = NowMs();
+                    SendRadarSettings();
                     System.Diagnostics.Debug.WriteLine("ZLG USB-CAN STARTED successfully");
                     return true;
                 }
@@ -458,6 +464,7 @@ namespace AgOpenGPS
                 else
                 {
                     System.Diagnostics.Debug.WriteLine("INFO: CAN reinitialized after inactivity");
+                    SendRadarSettings();
                 }
             }
             catch (Exception ex)
@@ -510,6 +517,23 @@ namespace AgOpenGPS
             return SendCanFrame(msgId, data);
         }
 
+        // minHeightM и maxHeightM — высота относительно радара (м)
+        // трава на земле при радаре 1.8м ≈ -1.8м, рекомендуем min=-1.2м max=+2.0м
+        public bool SendRadarAltitude(float minHeightM, float maxHeightM)
+        {
+            short minRaw = (short)(minHeightM * 100f);
+            short maxRaw = (short)(maxHeightM * 100f);
+            uint msgId = 0x500 + (uint)(radar.SensorId * 0x10);
+            byte[] data = new byte[8]
+            {
+                0xA9,
+                (byte)(minRaw & 0xFF), (byte)((minRaw >> 8) & 0xFF),
+                (byte)(maxRaw & 0xFF), (byte)((maxRaw >> 8) & 0xFF),
+                0x00, 0x00, 0x00
+            };
+            return SendCanFrame(msgId, data);
+        }
+
         private bool SendCanFrame(uint id, byte[] data)
         {
             if (!isDeviceOpen || data == null || data.Length > 8)
@@ -534,6 +558,13 @@ namespace AgOpenGPS
                 int sent = VCI_Transmit(DEVICE_TYPE, DEVICE_INDEX, CAN_INDEX, (IntPtr)(&frame), 1);
                 return sent > 0;
             }
+        }
+
+        private void SendRadarSettings()
+        {
+            System.Threading.Thread.Sleep(200); // дать радару время после инита
+            SendRadarSensitivity(RadarSensitivity);
+            SendRadarAltitude(RadarAltMinHeight, RadarAltMaxHeight);
         }
 
         // ===== IDISPOSABLE =====

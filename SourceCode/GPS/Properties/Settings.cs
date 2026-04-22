@@ -255,6 +255,7 @@ namespace AgOpenGPS.Properties
         public bool AgShareUploadActive = false;
         public bool isHeadlandDistanceOn = false;
         public string setRadar_sensitivityMode = "RadNorm";
+        public float setRadar_altMinHeight = -1.2f;
 
         public LoadResult Load()
         {

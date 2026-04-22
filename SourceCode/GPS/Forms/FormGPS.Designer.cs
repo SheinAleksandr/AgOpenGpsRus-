@@ -193,6 +193,7 @@ namespace AgOpenGPS
             this.btnChargeStatus = new System.Windows.Forms.Button();
             this.btnGPSData = new System.Windows.Forms.Button();
             this.btnRadarSens = new System.Windows.Forms.Button();
+            this.btnRadarAlt = new System.Windows.Forms.Button();
             this.btnShutdown = new System.Windows.Forms.Button();
             this.btnMaximizeMainForm = new System.Windows.Forms.Button();
             this.btnMinimizeMainForm = new System.Windows.Forms.Button();
@@ -2767,6 +2768,7 @@ namespace AgOpenGPS
             this.panelControlBox.Controls.Add(this.btnChargeStatus);
             this.panelControlBox.Controls.Add(this.btnGPSData);
             this.panelControlBox.Controls.Add(this.btnRadarSens);
+            this.panelControlBox.Controls.Add(this.btnRadarAlt);
             this.panelControlBox.Controls.Add(this.lblSpeed);
             this.panelControlBox.Controls.Add(this.btnShutdown);
             this.panelControlBox.Controls.Add(this.btnMaximizeMainForm);
@@ -2815,7 +2817,7 @@ namespace AgOpenGPS
             this.btnGPSData.Click += new System.EventHandler(this.btnGPSData_Click);
             // 
             // btnRadarSens
-            // 
+            //
             this.btnRadarSens.Location = new System.Drawing.Point(7, 3);
             this.btnRadarSens.Name = "btnRadarSens";
             this.btnRadarSens.Size = new System.Drawing.Size(88, 37);
@@ -2823,6 +2825,16 @@ namespace AgOpenGPS
             this.btnRadarSens.Text = "RadNorm";
             this.btnRadarSens.UseVisualStyleBackColor = true;
             this.btnRadarSens.Click += new System.EventHandler(this.btnRadarSens_Click);
+            //
+            // btnRadarAlt
+            //
+            this.btnRadarAlt.Location = new System.Drawing.Point(100, 3);
+            this.btnRadarAlt.Name = "btnRadarAlt";
+            this.btnRadarAlt.Size = new System.Drawing.Size(88, 37);
+            this.btnRadarAlt.TabIndex = 545;
+            this.btnRadarAlt.Text = "Alt:-1.2м";
+            this.btnRadarAlt.UseVisualStyleBackColor = true;
+            this.btnRadarAlt.Click += new System.EventHandler(this.btnRadarAlt_Click);
             // 
             // btnShutdown
             // 
@@ -3168,6 +3180,7 @@ namespace AgOpenGPS
         private System.Windows.Forms.ToolStripMenuItem newProfileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem loadProfileToolStripMenuItem;
         private System.Windows.Forms.Button btnRadarSens;
+        private System.Windows.Forms.Button btnRadarAlt;
     }
 }
 

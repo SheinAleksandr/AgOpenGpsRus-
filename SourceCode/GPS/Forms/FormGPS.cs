@@ -312,6 +312,9 @@ namespace AgOpenGPS
             btnRadarSens.Tag = radarMode;
             btnRadarSens.Text = radarMode;
 
+            float altMin = Properties.Settings.Default.setRadar_altMinHeight;
+            btnRadarAlt.Text = $"Alt:{altMin:F1}м";
+
             AppCore = new ApplicationCore(
                 new DirectoryInfo(RegistrySettings.baseDirectory),
                 null,
@@ -542,6 +545,7 @@ namespace AgOpenGPS
             agShareClient = new AgShareClient(Settings.Default.AgShareServer, Settings.Default.AgShareApiKey);
             //zlg
             usbCan = new UsbCanZlg();
+            usbCan.RadarAltMinHeight = Properties.Settings.Default.setRadar_altMinHeight;
             usbCan.Start();
 
         }
