@@ -1,5 +1,7 @@
-﻿using System;
+using System;
+using System.Threading;
 using System.Windows.Forms;
+using Accord.Video;
 using Accord.Video.DirectShow;
 
 namespace AgOpenGPS
@@ -7,6 +9,8 @@ namespace AgOpenGPS
     public partial class FormWebCam : Form
     {
         private FilterInfoCollection _videoDevices;
+        private MJPEGStream _mjpegStream;
+        private bool _wifiStopping;
 
         public FormWebCam()
         {
@@ -26,12 +30,30 @@ namespace AgOpenGPS
             {
                 deviceComboBox.SelectedItem = deviceComboBox.Items[0];
             }
+
+            UpdateButtons();
         }
 
         private void UpdateButtons()
         {
-            startButton.Enabled = deviceComboBox.SelectedItem != null;
+            if (wifiCheckBox.Checked)
+                startButton.Enabled = !string.IsNullOrWhiteSpace(wifiUrlTextBox.Text);
+            else
+                startButton.Enabled = deviceComboBox.SelectedItem != null;
+
             stopButton.Enabled = videoSourcePlayer.IsRunning;
+        }
+
+        private void wifiCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            deviceComboBox.Visible = !wifiCheckBox.Checked;
+            wifiUrlTextBox.Visible = wifiCheckBox.Checked;
+            UpdateButtons();
+        }
+
+        private void wifiUrlTextBox_TextChanged(object sender, EventArgs e)
+        {
+            UpdateButtons();
         }
 
         private void deviceComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -39,22 +61,74 @@ namespace AgOpenGPS
             UpdateButtons();
         }
 
+        private void StartMjpegStream()
+        {
+            _wifiStopping = false;
+            _mjpegStream = new MJPEGStream(wifiUrlTextBox.Text.Trim());
+            _mjpegStream.RequestTimeout = 10000;
+            _mjpegStream.VideoSourceError += MjpegStream_VideoSourceError;
+            videoSourcePlayer.VideoSource = _mjpegStream;
+            videoSourcePlayer.Start();
+        }
+
+        private void MjpegStream_VideoSourceError(object sender, VideoSourceErrorEventArgs e)
+        {
+            if (_wifiStopping) return;
+
+            // переподключение из UI-потока
+            BeginInvoke(new Action(() =>
+            {
+                if (_wifiStopping) return;
+                try
+                {
+                    videoSourcePlayer.SignalToStop();
+                    if (!videoSourcePlayer.WaitForStop(3000))
+                        videoSourcePlayer.Stop();
+                }
+                catch { }
+
+                StartMjpegStream();
+            }));
+        }
+
         private void startButton_Click(object sender, EventArgs e)
         {
-            var videoSource = new VideoCaptureDevice(_videoDevices[deviceComboBox.SelectedIndex].MonikerString);
-
-            videoSourcePlayer.VideoSource = videoSource;
-            videoSourcePlayer.Start();
+            if (wifiCheckBox.Checked)
+            {
+                StartMjpegStream();
+            }
+            else
+            {
+                var videoSource = new VideoCaptureDevice(_videoDevices[deviceComboBox.SelectedIndex].MonikerString);
+                videoSourcePlayer.VideoSource = videoSource;
+                videoSourcePlayer.Start();
+            }
 
             UpdateButtons();
         }
 
         private void stopButton_Click(object sender, EventArgs e)
         {
-            videoSourcePlayer.SignalToStop();
-            videoSourcePlayer.WaitForStop();
+            _wifiStopping = true;
+            try
+            {
+                videoSourcePlayer.SignalToStop();
+                if (!videoSourcePlayer.WaitForStop(3000))
+                    videoSourcePlayer.Stop();
+            }
+            catch { }
 
             UpdateButtons();
+        }
+
+        private void FormWebCam_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            _wifiStopping = true;
+            try
+            {
+                videoSourcePlayer.SignalToStop();
+            }
+            catch { }
         }
     }
 }

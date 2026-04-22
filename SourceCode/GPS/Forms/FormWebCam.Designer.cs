@@ -32,58 +32,84 @@
             this.stopButton = new System.Windows.Forms.Button();
             this.startButton = new System.Windows.Forms.Button();
             this.videoSourcePlayer = new Accord.Controls.VideoSourcePlayer();
+            this.wifiCheckBox = new System.Windows.Forms.CheckBox();
+            this.wifiUrlTextBox = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
-            // 
+            //
+            // wifiCheckBox
+            //
+            this.wifiCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.wifiCheckBox.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.wifiCheckBox.Location = new System.Drawing.Point(13, 233);
+            this.wifiCheckBox.Name = "wifiCheckBox";
+            this.wifiCheckBox.Size = new System.Drawing.Size(60, 24);
+            this.wifiCheckBox.TabIndex = 16;
+            this.wifiCheckBox.Text = "WiFi";
+            this.wifiCheckBox.UseVisualStyleBackColor = true;
+            this.wifiCheckBox.CheckedChanged += new System.EventHandler(this.wifiCheckBox_CheckedChanged);
+            //
+            // wifiUrlTextBox
+            //
+            this.wifiUrlTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.wifiUrlTextBox.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.wifiUrlTextBox.Location = new System.Drawing.Point(78, 234);
+            this.wifiUrlTextBox.Name = "wifiUrlTextBox";
+            this.wifiUrlTextBox.Size = new System.Drawing.Size(316, 22);
+            this.wifiUrlTextBox.TabIndex = 17;
+            this.wifiUrlTextBox.Text = "http://192.168.4.2:8000/stream";
+            this.wifiUrlTextBox.Visible = false;
+            this.wifiUrlTextBox.TextChanged += new System.EventHandler(this.wifiUrlTextBox_TextChanged);
+            //
             // deviceComboBox
-            // 
+            //
             this.deviceComboBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.deviceComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.deviceComboBox.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.deviceComboBox.FormattingEnabled = true;
-            this.deviceComboBox.Location = new System.Drawing.Point(13, 234);
+            this.deviceComboBox.Location = new System.Drawing.Point(78, 232);
             this.deviceComboBox.Name = "deviceComboBox";
-            this.deviceComboBox.Size = new System.Drawing.Size(196, 27);
+            this.deviceComboBox.Size = new System.Drawing.Size(234, 27);
             this.deviceComboBox.TabIndex = 11;
             this.deviceComboBox.SelectedIndexChanged += new System.EventHandler(this.deviceComboBox_SelectedIndexChanged);
-            // 
+            //
             // stopButton
-            // 
-            this.stopButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            //
+            this.stopButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.stopButton.BackgroundImage = global::AgOpenGPS.Properties.Resources.Stop;
             this.stopButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.stopButton.Enabled = false;
             this.stopButton.FlatAppearance.BorderSize = 0;
             this.stopButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.stopButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.stopButton.Location = new System.Drawing.Point(319, 229);
+            this.stopButton.Location = new System.Drawing.Point(319, 267);
             this.stopButton.Margin = new System.Windows.Forms.Padding(2);
             this.stopButton.Name = "stopButton";
             this.stopButton.Size = new System.Drawing.Size(75, 37);
             this.stopButton.TabIndex = 13;
             this.stopButton.UseVisualStyleBackColor = true;
             this.stopButton.Click += new System.EventHandler(this.stopButton_Click);
-            // 
+            //
             // startButton
-            // 
-            this.startButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            //
+            this.startButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.startButton.BackgroundImage = global::AgOpenGPS.Properties.Resources.Play;
             this.startButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.startButton.Enabled = false;
             this.startButton.FlatAppearance.BorderSize = 0;
             this.startButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.startButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.startButton.Location = new System.Drawing.Point(226, 229);
+            this.startButton.Location = new System.Drawing.Point(226, 267);
             this.startButton.Margin = new System.Windows.Forms.Padding(2);
             this.startButton.Name = "startButton";
             this.startButton.Size = new System.Drawing.Size(75, 37);
             this.startButton.TabIndex = 12;
             this.startButton.UseVisualStyleBackColor = true;
             this.startButton.Click += new System.EventHandler(this.startButton_Click);
-            // 
+            //
             // videoSourcePlayer
-            // 
-            this.videoSourcePlayer.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            //
+            this.videoSourcePlayer.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.videoSourcePlayer.BackColor = System.Drawing.SystemColors.AppWorkspace;
             this.videoSourcePlayer.BorderColor = System.Drawing.Color.Transparent;
@@ -98,8 +124,10 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(398, 268);
+            this.ClientSize = new System.Drawing.Size(398, 308);
             this.Controls.Add(this.videoSourcePlayer);
+            this.Controls.Add(this.wifiCheckBox);
+            this.Controls.Add(this.wifiUrlTextBox);
             this.Controls.Add(this.deviceComboBox);
             this.Controls.Add(this.stopButton);
             this.Controls.Add(this.startButton);
@@ -109,6 +137,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "WebCam";
             this.Load += new System.EventHandler(this.FormWebCam_Load);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormWebCam_FormClosing);
             this.ResumeLayout(false);
 
         }
@@ -119,5 +148,7 @@
         private System.Windows.Forms.Button stopButton;
         private System.Windows.Forms.Button startButton;
         private Accord.Controls.VideoSourcePlayer videoSourcePlayer;
+        private System.Windows.Forms.CheckBox wifiCheckBox;
+        private System.Windows.Forms.TextBox wifiUrlTextBox;
     }
 }
