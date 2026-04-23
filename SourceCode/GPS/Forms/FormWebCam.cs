@@ -9,7 +9,6 @@ namespace AgOpenGPS
     public partial class FormWebCam : Form
     {
         private FilterInfoCollection _videoDevices;
-        private MJPEGStream _mjpegStream;
         private bool _wifiStopping;
 
         public FormWebCam()
@@ -64,10 +63,10 @@ namespace AgOpenGPS
         private void StartMjpegStream()
         {
             _wifiStopping = false;
-            _mjpegStream = new MJPEGStream(wifiUrlTextBox.Text.Trim());
-            _mjpegStream.RequestTimeout = 10000;
-            _mjpegStream.VideoSourceError += MjpegStream_VideoSourceError;
-            videoSourcePlayer.VideoSource = _mjpegStream;
+            var stream = new MJPEGStream(wifiUrlTextBox.Text.Trim());
+            stream.RequestTimeout = 10000;
+            stream.VideoSourceError += MjpegStream_VideoSourceError;
+            videoSourcePlayer.VideoSource = stream;
             videoSourcePlayer.Start();
         }
 
