@@ -82,7 +82,11 @@ namespace AgOpenGPS
                 try
                 {
                     videoSourcePlayer.SignalToStop();
-                    if (!videoSourcePlayer.WaitForStop(3000))
+                    var t = new Thread(() => { try { videoSourcePlayer.WaitForStop(); } catch { } });
+                    t.IsBackground = true;
+                    t.Start();
+                    t.Join(3000);
+                    if (t.IsAlive)
                         videoSourcePlayer.Stop();
                 }
                 catch { }
@@ -113,7 +117,11 @@ namespace AgOpenGPS
             try
             {
                 videoSourcePlayer.SignalToStop();
-                if (!videoSourcePlayer.WaitForStop(3000))
+                var t = new Thread(() => { try { videoSourcePlayer.WaitForStop(); } catch { } });
+                t.IsBackground = true;
+                t.Start();
+                t.Join(3000);
+                if (t.IsAlive)
                     videoSourcePlayer.Stop();
             }
             catch { }
