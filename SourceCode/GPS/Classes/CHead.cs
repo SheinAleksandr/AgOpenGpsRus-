@@ -178,7 +178,7 @@ namespace AgOpenGPS
                            + fwdY * (nearestPt.northing - ptVec2.northing);
 
                 double cosAngle = nearestDist > 0.01 ? dot / nearestDist : 0;
-                bool nearBefore = dot > 0 && nearestDist <= beforeMeters;
+                bool nearBefore = nearestDist <= beforeMeters && (mf.yt.isYouTurnTriggered || dot > 0);
                 bool nearAfter  = !inHeadlandZone && dot < 0 && nearestDist <= afterMeters && cosAngle < -0.1;
 
                 if (nearBefore || inHeadlandZone || nearAfter)
