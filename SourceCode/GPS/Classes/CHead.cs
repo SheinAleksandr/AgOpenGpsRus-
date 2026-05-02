@@ -177,10 +177,10 @@ namespace AgOpenGPS
                 double dot = fwdX * (nearestPt.easting - ptVec2.easting)
                            + fwdY * (nearestPt.northing - ptVec2.northing);
 
-                // cosAngle > 0.5 means hdline is within ~60° of forward direction
+                // cosAngle > 0.1 means hdline is within ~84° of forward direction
                 double cosAngle = nearestDist > 0.01 ? dot / nearestDist : 0;
-                bool nearBefore = dot > 0 && nearestDist <= beforeMeters && cosAngle > 0.5;
-                bool nearAfter  = !inHeadlandZone && dot < 0 && nearestDist <= afterMeters && cosAngle < -0.5;
+                bool nearBefore = dot > 0 && nearestDist <= beforeMeters && cosAngle > 0.1;
+                bool nearAfter  = !inHeadlandZone && dot < 0 && nearestDist <= afterMeters && cosAngle < -0.1;
 
                 if (nearBefore || inHeadlandZone || nearAfter)
                 {
