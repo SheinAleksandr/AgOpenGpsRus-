@@ -1153,6 +1153,11 @@ namespace AgOpenGPS
                             yt.ResetCreatedYouTurn();
                             mc.isOutOfBounds = !bnd.IsPointInsideFenceArea(pivotAxlePos);
                         }
+                        else
+                        {
+                            yt.ResetYouTurn();
+                            mc.isOutOfBounds = !bnd.IsPointInsideFenceArea(pivotAxlePos);
+                        }
 
                     }
 
